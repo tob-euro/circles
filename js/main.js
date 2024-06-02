@@ -25,9 +25,8 @@ const render = Render.create({
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // SHAPES.JS
-
 // Function to create a circular texture from an image
-const scaleFactor = 4
+const scaleFactor = 4;
 function fitSprite(imageUrl, diameter, callback) {
     const canvas = document.createElement('canvas');
     const context = canvas.getContext('2d');
@@ -86,7 +85,6 @@ function addCircle(x, y, radius, textureUrl, text, supText, infoContent, tags) {
     });
 }
 
-
 // Helper function to create and link a text element to a circle
 function createCircleDOMElement(circle) {
     const overlayContainer = document.getElementById('overlay-container'); // Get the overlay container element
@@ -109,27 +107,25 @@ function createCircleDOMElement(circle) {
     overlayContainer.appendChild(textContainer); // Append the text container to the overlay container
 
     circle.textElement = textContainer; // Store reference in the circle object for later use
-    // Add a border for visual debugging
-    // circle.textElement.style.border = '2px solid red';
-    
-    // Add a click event listener to the text container
-    textContainer.addEventListener('click', function() {
-        toggleInfoMenu(circle);
-    });
-    updateTextPosition(circle); // Initial positioning of the text container
+
+    // Initial positioning of the text container
+    updateTextPosition(circle);
 }
 
 // Function to update the position of the circle's text element
 function updateTextPosition(circle) {
     if (circle.textElement) {
-        // Set the size of the box
-        const boxWidth = 250; // Adjust the width of the box as needed
-        const boxHeight = 40; // Adjust the height of the box as needed
+        // Calculate position relative to the viewport
+        const renderBounds = render.bounds;
+        const viewWidth = render.canvas.width;
+        const viewHeight = render.canvas.height;
         
-        circle.textElement.style.width = `${boxWidth}px`;
-        circle.textElement.style.height = `${boxHeight}px`;
-        circle.textElement.style.left = `${circle.position.x}px`;
-        circle.textElement.style.top = `${circle.position.y}px`;
+        const circleX = (circle.position.x - renderBounds.min.x) * viewWidth / (renderBounds.max.x - renderBounds.min.x);
+        const circleY = (circle.position.y - renderBounds.min.y) * viewHeight / (renderBounds.max.y - renderBounds.min.y);
+        
+        // Position the text container to be centered within the circle
+        circle.textElement.style.left = `${circleX}px`;
+        circle.textElement.style.top = `${circleY}px`;
         circle.textElement.style.transform = `translate(-50%, -50%)`;
     }
 }
@@ -142,6 +138,7 @@ Events.on(engine, 'afterUpdate', function() {
         }
     });
 });
+
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -160,15 +157,25 @@ const mouseConstraint = MouseConstraint.create(engine, {
 });
 World.add(world, mouseConstraint);
 
-// Allow scroll through the canvas
-mouseConstraint.mouse.element.removeEventListener(
-    "mousewheel",
-    mouseConstraint.mouse.mousewheel
-);
-mouseConstraint.mouse.element.removeEventListener(
-    "DOMMouseScroll",
-    mouseConstraint.mouse.mousewheel
-);
+// Prevent zooming on scroll but allow panning
+mouse.element.addEventListener('wheel', (event) => {
+    event.preventDefault();
+    
+    const scrollSpeed = 1; // Adjust scroll speed if needed
+    const { deltaX, deltaY } = event;
+    
+    // Pan the view by adjusting the render bounds
+    render.bounds.min.x += deltaX * scrollSpeed;
+    render.bounds.max.x += deltaX * scrollSpeed;
+    render.bounds.min.y += deltaY * scrollSpeed;
+    render.bounds.max.y += deltaY * scrollSpeed;
+    
+    // Update render translations
+    Render.lookAt(render, {
+        min: { x: render.bounds.min.x, y: render.bounds.min.y },
+        max: { x: render.bounds.max.x, y: render.bounds.max.y }
+    });
+}, { passive: false });
 
 // Click and drag detection
 let dragging = false;
@@ -197,6 +204,7 @@ canvas.addEventListener('mouseup', function(event) {
     }
     dragging = false;
 });
+
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -296,11 +304,11 @@ function restorePreviousActiveTags() {
 }
 
 // Add circles with textures and text
-addCircle(0, 150, 150, 'content/images/pic1.jpg', 'Caroline Polachek', 'US', '<h1>Perfume Genius</h1><p>Artist Info Here...</p>', ['Live Concert', 'Vessel Stage']);
-addCircle(150, 300, 150, 'content/images/pic2.jpg', 'FKA Twigs', 'UK', '<h1>Kate NV</h1><p>Artist Info Here...</p>', ['Live Concert', 'Beach Stage']);
-addCircle(300, 100, 150, 'content/images/pic3.jpg', 'Weyes Blood', 'US', '<h1>Weyes Blood</h1><p>Artist Info Here...</p>', ['Art Exhibition', 'Astral Stage']);
-addCircle(350, 200, 150, 'content/images/pic4.jpg', 'Kate NV', 'RU', '<h1>A.G. Cook</h1><p>Artist Info Here...</p>', ['DJ', 'Space Stage']);
-addCircle(450, 250, 150, 'content/images/pic5.jpg', 'Perfume Genius', 'US', '<h1>Caroline Polachek</h1><p>Artist Info Here...</p>', ['Workshop', 'Amphi Stage']);
+addCircle(0, 150, 150, '../content/images/pic1.jpg', 'Caroline Polachek', 'US', '<h1>Perfume Genius</h1><p>Artist Info Here...</p>', ['Live Concert', 'Vessel Stage']);
+addCircle(150, 300, 150, '../content/images/pic2.jpg', 'FKA Twigs', 'UK', '<h1>Kate NV</h1><p>Artist Info Here...</p>', ['Live Concert', 'Beach Stage']);
+addCircle(300, 100, 150, '../content/images/pic3.jpg', 'Weyes Blood', 'US', '<h1>Weyes Blood</h1><p>Artist Info Here...</p>', ['Art Exhibition', 'Astral Stage']);
+addCircle(350, 200, 150, '../content/images/pic4.jpg', 'Kate NV', 'RU', '<h1>A.G. Cook</h1><p>Artist Info Here...</p>', ['DJ', 'Space Stage']);
+addCircle(450, 250, 150, '../content/images/pic5.jpg', 'Perfume Genius', 'US', '<h1>Caroline Polachek</h1><p>Artist Info Here...</p>', ['Workshop', 'Amphi Stage']);
 
 
 // Create walls
