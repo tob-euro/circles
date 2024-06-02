@@ -1,0 +1,376 @@
+/* Define CSS variables for light and dark modes */
+:root {
+    --text-color: rgba(0, 0, 0, 0.85);
+    --menu-color: rgba(255, 255, 255, 0.5);
+    --background-color: #f0f0f0;
+    --overlay-text-color: rgba(255, 255, 255, 0.8);
+    --tag-color: rgba(0, 0, 0, 0.5);
+    --tag-active-color: tomato;
+    --box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    --border-color: rgb(120, 120, 120);
+    --close-btn-color: rgba(0, 0, 0, 0.85);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --text-color: rgba(255, 255, 255, 0.85);
+        --menu-color: rgba(18, 18, 18, 0.5);
+        --background-color: #222222;
+        --overlay-text-color: rgba(255, 255, 255, 0.8);
+        --tag-color: rgba(255, 255, 255, 0.6);
+        --box-shadow: 0 4px 8px rgba(255, 255, 255, 0.1);
+        --border-color: rgba(255, 255, 255, 0.2);
+        --close-btn-color: rgba(255, 255, 255, 0.85);
+    }
+}
+/* Fonts */
+@font-face {
+    font-family: 'Suisse Intl';
+    src: url('content/fonts/SuisseIntl-Light.ttf') format('truetype');
+    font-weight: 300;
+  }
+
+@font-face {
+    font-family: 'Suisse Intl';
+    src: url('content/fonts/SuisseIntl-Regular.ttf') format('truetype');
+    font-weight: 400;
+  }
+  
+@font-face {
+    font-family: 'Suisse Intl';
+    src: url('content/fonts/SuisseIntl-SemiBold.ttf') format('truetype');
+    font-weight: 600;
+    }
+
+@font-face {
+font-family: 'Suisse Intl';
+src: url('content/fonts/SuisseIntl-Bold.ttf') format('truetype');
+font-weight: 700;
+}
+
+body, html {
+    margin: 0;
+    padding: 0;
+    font-family: 'Suisse Intl', Arial, sans-serif;
+    background-color: var(--background-color);
+    overflow: hidden;
+}
+
+::selection {
+    color: var(--text-color);
+    background: tomato;
+  }
+
+::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+}
+
+.navigation {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    left: 0;
+    right: 0;
+    margin: 10px;
+    z-index: 1;
+    gap: 10px;
+}
+
+.menu, .filters, .info-menu, .clicked-circle, .news-tab, .card-bg, .card, .buttons button, .card-bg   {
+    background-color: var(--menu-color);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+    border-radius: 30px;
+    box-shadow: var(--box-shadow);
+    padding: 10px 20px;
+    overflow: hidden;
+    color: var(--text-color);
+}
+
+.menu nav ul {
+    display: flex;
+    list-style-type: none;
+    padding: 0;
+    margin: 0;  
+    justify-content: space-between;
+}
+
+.menu nav ul li a {
+    text-decoration: none;
+    color: var(--text-color);
+    font-size: 36px;
+    font-weight: 700;
+    transition: color 0.2s ease;;
+}
+
+.menu nav ul li a:hover, .menu nav ul li a.active {
+    color: tomato;
+}
+
+.category {
+    font-weight: 600;
+    text-align: left;
+    margin-bottom: 3px;
+    color: var(--text-color);
+}
+
+.tags {
+    display: flex;
+    justify-content: space-between;
+    cursor: pointer;
+    text-align: left;
+    font-size: 15px;
+    font-weight: 300;
+    color: var(--tag-color);
+}
+
+.tags:not(:last-child) {
+    margin-bottom: 10px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid rgb(120, 120, 120);
+}
+
+.tag {
+    transition: color 0.3s;
+}
+
+.tag:hover,  .tag.active{
+    font-weight: 400;
+    color: tomato;
+}
+
+.frame {
+    position: absolute;
+    width: 2000px; /* Set to your desired frame size */
+    height: 2000px; /* Set to your desired frame size */
+}
+
+.viewport {
+    position: fixed;
+    top: 0; /* Adjust if you have a navigation bar at the top */
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+}
+
+#viewport-center {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background-color: red;
+    border-radius: 50%;
+    z-index: 1000;
+}
+
+canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.info-menu {
+    width: 69%;
+    height: 580px;
+    align-self: flex-end;
+}
+
+.info-menu.show {
+    display: block;
+}
+
+/* Overlay Text */
+.overlay-text {
+    position: absolute;
+    color: var(--overlay-text-color);
+    font-size: 25px; /* Adjust font size as needed */
+    font-weight: 700;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center; /* Ensure vertical centering */
+    width: 100%; /* Use 100% width of the circle */
+    height: 100%; /* Use 100% height of the circle */
+    pointer-events: none; /* Ensure clicks go through the text to the circle */
+    
+}
+
+.superscript {
+    font-weight: 400;
+    font-size: 15px; /* Adjust font size as needed */
+    vertical-align: super;
+    margin-left: 3px; /* Adjust margin as needed to create spacing */
+}
+
+/* Close button for info-menu */
+.info-menu .close-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: none; /* No background color */
+    color: var(--text-color); /* Dark grey color for the cross */
+    border: none; /* No border */
+    font-size: 30px; /* Adjust the size as needed */
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 20; /* Ensure it's above the info-menu */
+    outline: none; /* Remove the default focus outline */
+    transition: transform 0.2s ease; /* Add a slight transition for hover effect */
+}
+
+.info-menu .close-btn:hover {
+    transform: scale(1.1); /* Slightly enlarge on hover */
+}
+
+.info-menu .close-btn:before {
+    content: '\00d7'; /* Unicode for multiplication sign (×) */
+    font-size: 30px; /* Adjust the size as needed */
+    font-weight: 100; /* Light weight for a minimalist look */
+}
+
+.clicked-circle {
+    aspect-ratio: 2.5 / 4;
+    position: fixed; /* Fixed position to align with menus */
+    top: 280px; /* Adjust based on where you want it aligned */
+    left: 10px; /* Adjust based on where you want it aligned */
+    height: 580px; /* Adjust size as needed */
+    background-size:90%; /* Ensure the background image covers the element */
+    background-repeat: no-repeat; /* Prevent the background image from repeating */
+    background-position:50% 13%; /* Center the background image */
+}
+
+.clicked-circle-content {
+    opacity: 0;
+}
+
+.circle[style*="display: none"] {
+    opacity: 0;
+    transform: scale(0.8);
+}
+
+.hidden {
+    display: none;
+}
+
+.overlay-text.hidden {
+    opacity: 0;
+    transform: scale(0);
+}
+
+.overlay-text {
+    transition: transform 0.5s ease, opacity 0.5s ease;
+    transform: scale(1);
+    opacity: 1;
+    transform-origin: center center;
+}
+
+
+/* News Tab */
+.news-tab {
+    overflow-y: auto;
+    height: 640px;
+}
+
+.news-tab h1 {
+    font-size: 2.5em;
+    color: var(--text-color);
+}
+
+.card {
+    padding: 0;
+    transition: box-shadow 0.3s ease;
+    aspect-ratio: 2.5 / 4;
+    color: rgba(0, 0, 0, 0.85);
+    position: relative;
+    overflow: hidden;
+}
+.card:hover {
+    box-shadow: var(--box-shadow);
+}
+
+.card img {
+    width: 100%;
+    height: auto;
+    object-fit: cover; /* Ensure the image covers the entire card without distortion */
+    position: absolute; /* Position the image absolutely within the card */
+    top: 0;
+    left: 0;
+    aspect-ratio: 2.5 / 4;
+}
+
+.card-bg {
+    border-radius: 0;
+    height: 25%;
+    transition: height 0.5s ease;
+    box-sizing: border-box;
+}
+.card:hover .card-bg {
+    height: 100%;
+}
+
+.card h2 {
+    margin: 0;
+    color: var(--text-color);
+}
+
+.card .info {
+    display: flex;
+    font-weight: 300;
+    justify-content: space-between;
+    color: var(--text-color);
+}
+
+.card-bg .card-content {
+    opacity: 0%;
+    transition: opacity 0.5s ease;
+    padding: 20px 15px;
+}
+
+.card:hover .card-bg .card-content {
+    opacity: 1;
+}
+
+.card .buttons {
+    display: flex;
+    justify-content: space-between;
+    position: absolute;
+    box-sizing: border-box; 
+    bottom: 0px;
+    left: 0;
+    width: 100%;
+    padding: 10px 15px;
+}
+
+.buttons button {
+    border: none;
+    cursor: pointer;
+    transition: box-shadow 0.3s ease;
+}
+
+.featured-stories, .all-news {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 50px;
+    flex-wrap: wrap;
+}
+
+.featured-stories .card {
+    width: 30%;
+}
+
+.all-news .card {
+    width: 22%;
+}
+
+.featured-stories h2 {
+    font-size: 2.2em;
+}
+
+.all-news h2 {
+    font-size: 1.7em;
+}

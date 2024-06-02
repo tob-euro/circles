@@ -1,1 +1,2 @@
 # circles
+This project is based off a design project from KADK. Originally intended as a website for KUNE Festival, this pilot project expands that original design in building a more general design concept using the Matter.js library.

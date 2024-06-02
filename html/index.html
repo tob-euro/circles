@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f0f0f0">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.17.1/matter.min.js"></script>
+  <title>Index</title>
+  <link href="content/fav/imagesfavicon.ico" rel="icon" type="image/x-icon">
+  <link rel="stylesheet" href="../css/styles.css">
+  <script src="../js/filters.js" defer></script>
+</head>
+
+<body>
+  <div class="navigation">
+    <div class="menu">
+      <nav>
+        <ul>
+          <li><a href="index.html">Index</a></li>
+          <li><a href="news.html">News</a></li>
+          <li><a href="#">Community</a></li>
+          <li><a href="#">Tickets</a></li>
+        </ul>
+      </nav>
+    </div>
+
+    <div class="filters"></div>
+
+    <div id="info-menu" class="info-menu hidden">
+      <div id="info-content"></div>
+    </div>
+  </div>
+
+  <div class="frame" id="frame">
+    <div class="viewport" id="viewport">
+      <canvas id="matterCanvas"></canvas>
+      <div id="overlay-container"></div>
+      <div id="viewport-center"></div> <!-- Red dot for viewport center -->
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Get the current URL path without the leading '/'
+        const currentPath = window.location.pathname.split('/').pop();
+
+        // Select all menu links
+        const menuLinks = document.querySelectorAll('.menu nav ul li a');
+
+        // Loop through the menu links and add the "active" class to the matching link
+        menuLinks.forEach(link => {
+            if (link.getAttribute('href') === currentPath) {
+                link.classList.add('active');
+            }
+        });
+    });
+  </script>
+
+    <script src="../js/main.js" defer></script> <!-- Include Matter.js script here -->
+</body>
+</html>
