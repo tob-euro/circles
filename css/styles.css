@@ -54,6 +54,24 @@ body, html {
     font-family: 'Suisse Intl', Arial, sans-serif;
     background-color: var(--background-color);
     overflow: hidden;
+    width: 50%;
+    height: 50%;
+}
+
+.frame {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden; /* Ensure no overflow */
+}
+
+canvas#matterCanvas {
+    display: block; /* Remove any inline padding or margin */
+    width: 50%;
+    height: 50%;
+    background: #f0f0f0; /* Optional: set a background color */
 }
 
 ::selection {
@@ -62,8 +80,8 @@ body, html {
   }
 
 ::-webkit-scrollbar {
-    /* width: 0;
-    height: 0; */
+    width: 0;
+    height: 0;
 }
 
 .navigation {
@@ -139,49 +157,34 @@ body, html {
     font-weight: 400;
     color: tomato;
 }
-  /* Viewport */
-#viewport {
+/* Overlay Container */
+#overlay-container {
     position: absolute;
     top: 0;
     left: 0;
-    width: calc(100vw - 25px);
-    height: calc(100vh - 25px); /* Adjust based on navigation height */
-    overflow: hidden;
-    border: 1px solid #ccc; /* Optional: for visual reference */
-}
-
-/* Viewport center indicator */
-#viewport-center {
-    position: absolute;
-    width: 10px;
-    height: 10px;
-    background: red; /* Red dot */
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    width: 100%;
+    height: 100%;
     pointer-events: none; /* Allows clicks to pass through */
 }
 
-/* Overlay Text */
 .overlay-text {
     position: absolute;
     color: var(--overlay-text-color);
-    font-size: 25px; /* Adjust font size as needed */
+    font-size: 18px;
     font-weight: 700;
     text-align: center;
     display: flex;
     justify-content: center;
-    align-items: center; /* Ensure vertical centering */
-    width: 100%; /* Use 100% width of the circle */
-    height: 100%; /* Use 100% height of the circle */
+    align-items: center;
     pointer-events: none; /* Ensure clicks go through the text to the circle */
+    transform: translate(-50%, -50%);
 }
 
 .superscript {
     font-weight: 400;
-    font-size: 15px; /* Adjust font size as needed */
+    font-size: 12px;
     vertical-align: super;
-    margin-left: 3px; /* Adjust margin as needed to create spacing */
+    margin-left: 3px;
 }
 
 .info-menu {

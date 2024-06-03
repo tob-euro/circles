@@ -8,9 +8,7 @@
   <title>Index</title>
   <link href="content/fav/imagesfavicon.ico" rel="icon" type="image/x-icon">
   <link rel="stylesheet" href="../css/styles.css">
-  <script src="../js/filters.js" defer></script>
 </head>
-
 <body>
   <div class="navigation">
     <div class="menu">
@@ -32,22 +30,14 @@
   </div>
 
   <div class="frame" id="frame">
-    <div class="viewport" id="viewport">
-        <canvas id="matterCanvas"></canvas>
-        <div id="overlay-container"></div>
-        <div id="viewport-center"></div> <!-- Red dot for viewport center -->
-    </div>
-</div>
+      <canvas id="matterCanvas"></canvas>
+      <div id="overlay-container"></div>
+  </div>
 
   <script>
     document.addEventListener("DOMContentLoaded", function() {
-        // Get the current URL path without the leading '/'
         const currentPath = window.location.pathname.split('/').pop();
-
-        // Select all menu links
         const menuLinks = document.querySelectorAll('.menu nav ul li a');
-
-        // Loop through the menu links and add the "active" class to the matching link
         menuLinks.forEach(link => {
             if (link.getAttribute('href') === currentPath) {
                 link.classList.add('active');
@@ -55,7 +45,7 @@
         });
     });
   </script>
-
-    <script src="../js/main.js" defer></script> <!-- Include Matter.js script here -->
+    <script src="../js/filters.js" defer></script>
+    <script src="../js/main.js" defer></script>
 </body>
 </html>

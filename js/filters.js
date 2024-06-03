@@ -80,9 +80,11 @@ function activateTag(tagElement) {
 // Function to apply filters to the Matter.js world
 function applyFilters() {
     const activeTags = Array.from(document.querySelectorAll('.tag.active')).map(tag => tag.getAttribute('data-tag'));
+    console.log("Active tags:", activeTags);
+
 
     if (activeTags.length === 0) {
-        // If no tags are active, show all circles
+        // Show all circles if no tags are active
         allCircles.forEach(circle => {
             if (!Composite.allBodies(world).includes(circle)) {
                 Composite.add(world, circle);
@@ -91,14 +93,14 @@ function applyFilters() {
         });
     } else {
         allCircles.forEach(circle => {
-            const isActive = circle.tags.some(tag => activeTags.includes(tag));
+            const isActive = activeTags.every(tag => circle.tags.includes(tag));
+            console.log("Circle:", circle, "Is active:", isActive);
             if (isActive) {
                 if (!Composite.allBodies(world).includes(circle)) {
                     Composite.add(world, circle);
                     animateBodyAppearance(circle);
                 }
             } else {
-                // Animate the body disappearance
                 animateBodyDisappearance(circle);
             }
         });
@@ -111,6 +113,11 @@ function animateBodyAppearance(circle) {
     const maxRadius = circle.originalRadius; // Target radius
     const startRadius = circle.circleRadius;
     const startTime = Date.now();
+
+                // Lock the angle to prevent rotation
+                Body.setAngle(circle, 0);
+                circle.isStatic = false;
+                circle.inertia = Infinity;
 
     // Ensure the text element is visible and reset its scale
     if (circle.textElement) {
@@ -142,6 +149,11 @@ function animateBodyAppearance(circle) {
             circle.render.sprite.xScale = circle.originalXScale;
             circle.render.sprite.yScale = circle.originalYScale;
 
+            // Lock the angle to prevent rotation
+            Body.setAngle(circle, 0);
+            circle.isStatic = false;
+            circle.inertia = Infinity;
+            
             if (circle.textElement) {
                 circle.textElement.style.transform = 'scale(1)';
                 updateTextPosition(circle); // Final position update

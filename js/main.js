@@ -1,32 +1,72 @@
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// ENGINE.JS
+const { Engine, Render, Runner, Bodies, Composite, MouseConstraint, Mouse, World, Events, Vector, Common, Body, Composites, Bounds } = Matter;
 
-// Import Matter.js modules
-const { Engine, Render, Runner, Bodies, Composite, MouseConstraint, Mouse, World, Events, Body, Vector, Bounds } = Matter;
+const allCircles = []; // Declare globally
 
-// Initialize Matter.js engine and renderer
+
+// Create engine
 const engine = Engine.create();
 const world = engine.world;
 engine.gravity.y = false;
 
 const canvas = document.getElementById('matterCanvas');
+
+// Function to handle DPI scaling
+function setCanvasDPI(canvas) {
+    const context = canvas.getContext('2d');
+    const devicePixelRatio = window.devicePixelRatio || 1;
+    const backingStoreRatio = context.webkitBackingStorePixelRatio ||
+                              context.mozBackingStorePixelRatio ||
+                              context.msBackingStorePixelRatio ||
+                              context.oBackingStorePixelRatio ||
+                              context.backingStorePixelRatio || 1;
+    const ratio = devicePixelRatio / backingStoreRatio;
+
+    if (devicePixelRatio !== backingStoreRatio) {
+        const oldWidth = canvas.width;
+        const oldHeight = canvas.height;
+
+        canvas.width = oldWidth * ratio;
+        canvas.height = oldHeight * ratio;
+
+        canvas.style.width = `${oldWidth}px`;
+        canvas.style.height = `${oldHeight}px`;
+
+        context.scale(ratio, ratio);
+    }
+}
+setCanvasDPI(canvas);
+
 const render = Render.create({
     canvas: canvas,
     engine: engine,
     options: {
-        width: 2000,
-        height: 2000,
-        hasBounds: true,
+        width: window.innerWidth,
+        height: window.innerHeight,
+        background: "transparent",
         wireframes: false,
-        background: false,
-        pixelRatio: window.devicePixelRatio,
+        showAngleIndicator: false,
+        pixelRatio: window.devicePixelRatio // This ensures the correct pixel ratio
     }
 });
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// SHAPES.JS
-// Function to create a circular texture from an image
+Render.run(render);
+
+// Add mouse drag control
+var mouse = Mouse.create(render.canvas),
+    mouseConstraint = MouseConstraint.create(engine, {
+        mouse: mouse,
+        constraint: {
+            stiffness: 0.00075,
+            render: {
+                visible: false
+            }
+        }
+    });
+Composite.add(world, mouseConstraint);
+
+
 const scaleFactor = 4;
+
 function fitSprite(imageUrl, diameter, callback) {
     const canvas = document.createElement('canvas');
     const context = canvas.getContext('2d');
@@ -49,16 +89,14 @@ function fitSprite(imageUrl, diameter, callback) {
     img.src = imageUrl;
 }
 
-// List to maintain all circles
-const allCircles = [];
 
-// Function to add a circle with texture, text, and other properties
+
 function addCircle(x, y, radius, textureUrl, text, supText, infoContent, tags) {
     fitSprite(textureUrl, radius * 2, function (circularTexture) {
         const circle = Bodies.circle(x, y, radius, {
-            restitution: 0.5, // bounciness
-            inertia: Infinity, // Prevent rotation
-            frictionAir: 0.05, // Air friction
+            restitution: 0.5,
+            inertia: Infinity,  // Prevent rotation
+            frictionAir: 0.05,
             render: {
                 sprite: {
                     texture: circularTexture,
@@ -67,33 +105,31 @@ function addCircle(x, y, radius, textureUrl, text, supText, infoContent, tags) {
                 }
             }
         });
-        // Attach properties to the circle
-        circle.infoContent = infoContent; // Attach info content to the circle
-        circle.tags = tags; // Attach tags to the circle
-        circle.text = text; // Store the text for the circle
-        circle.supText = supText; // Store the superscript text for the circle
-
-        // Store original size and scales
+        circle.infoContent = infoContent;
+        circle.tags = tags;
+        circle.text = text;
+        circle.supText = supText;
         circle.originalRadius = radius;
         circle.originalXScale = circle.render.sprite.xScale;
         circle.originalYScale = circle.render.sprite.yScale;
 
         Composite.add(world, circle);
-
         createCircleDOMElement(circle);
-        allCircles.push(circle); // Add circle to the list of all circles
+        allCircles.push(circle); // Add to global array
+
+        // Animate the circle appearance
+        animateBodyAppearance(circle);
     });
 }
 
-// Helper function to create and link a text element to a circle
+
+// Function to create a text element and associate it with a circle
 function createCircleDOMElement(circle) {
-    const overlayContainer = document.getElementById('overlay-container'); // Get the overlay container element
+    const overlayContainer = document.getElementById('overlay-container');
     
-    // Create the text container div and add class
     const textContainer = document.createElement('div');
     textContainer.className = 'overlay-text';
     
-    // Create the span for main text and the sup for superscript, then append
     const textElement = document.createElement('span');
     textElement.textContent = circle.text;
     
@@ -104,125 +140,105 @@ function createCircleDOMElement(circle) {
     textElement.appendChild(supElement);
     textContainer.appendChild(textElement);
     
-    overlayContainer.appendChild(textContainer); // Append the text container to the overlay container
+    overlayContainer.appendChild(textContainer);
 
-    circle.textElement = textContainer; // Store reference in the circle object for later use
+    circle.textElement = textContainer;
 
-    // Initial positioning of the text container
     updateTextPosition(circle);
 }
 
-// Function to update the position of the circle's text element
+// Function to update the position of the text element based on the circle's position
 function updateTextPosition(circle) {
     if (circle.textElement) {
-        // Calculate position relative to the viewport
-        const renderBounds = render.bounds;
-        const viewWidth = render.canvas.width;
-        const viewHeight = render.canvas.height;
-        
-        const circleX = (circle.position.x - renderBounds.min.x) * viewWidth / (renderBounds.max.x - renderBounds.min.x);
-        const circleY = (circle.position.y - renderBounds.min.y) * viewHeight / (renderBounds.max.y - renderBounds.min.y);
-        
-        // Position the text container to be centered within the circle
-        circle.textElement.style.left = `${circleX}px`;
-        circle.textElement.style.top = `${circleY}px`;
-        circle.textElement.style.transform = `translate(-50%, -50%)`;
+        const { x, y } = circle.position;
+
+        // Calculate the position without scaling the text
+        const scaledX = (x - render.bounds.min.x) / boundsScale.x;
+        const scaledY = (y - render.bounds.min.y) / boundsScale.y;
+
+        // Update the position of the text element without scaling
+        circle.textElement.style.left = `${scaledX}px`;
+        circle.textElement.style.top = `${scaledY}px`;
+        circle.textElement.style.transform = 'translate(-50%, -50%)'; // Center the text without scaling
     }
 }
 
-// Update the text positions based on the circle positions
+// Update text positions during each render
 Events.on(engine, 'afterUpdate', function() {
-    Composite.allBodies(world).forEach(function(body) {
-        if (body.textElement) {
-            updateTextPosition(body);
-        }
+    allCircles.forEach(circle => {
+        updateTextPosition(circle);
     });
 });
-
-
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// MOUSE.JS
-
-// Add mouse control
-const mouse = Mouse.create(render.canvas);
-const mouseConstraint = MouseConstraint.create(engine, {
-    mouse: mouse,
-    constraint: {
-        stiffness: 0.00075,
-        render: {
-            visible: false
-        }
-    }
-});
-World.add(world, mouseConstraint);
-
-// Prevent zooming on scroll but allow panning
-mouse.element.addEventListener('wheel', (event) => {
-    event.preventDefault();
-    
-    const scrollSpeed = 1; // Adjust scroll speed if needed
-    const { deltaX, deltaY } = event;
-    
-    // Pan the view by adjusting the render bounds
-    render.bounds.min.x += deltaX * scrollSpeed;
-    render.bounds.max.x += deltaX * scrollSpeed;
-    render.bounds.min.y += deltaY * scrollSpeed;
-    render.bounds.max.y += deltaY * scrollSpeed;
-    
-    // Update render translations
-    Render.lookAt(render, {
-        min: { x: render.bounds.min.x, y: render.bounds.min.y },
-        max: { x: render.bounds.max.x, y: render.bounds.max.y }
-    });
-}, { passive: false });
-
-// Click and drag detection
-let dragging = false;
-let clickedCircle = null;
-
-Events.on(mouseConstraint, 'startdrag', function(event) {
-    dragging = true;
-    clickedCircle = null;
-});
-
-Events.on(mouseConstraint, 'enddrag', function(event) {
-    dragging = false;
-});
-
-canvas.addEventListener('mouseup', function(event) {
-    if (!dragging) {
-        const mousePosition = mouse.position;
-        const clickedBodies = Composite.allBodies(world).filter(function(body) {
-            return Matter.Bounds.contains(body.bounds, mousePosition);
-        });
-
-        if (clickedBodies.length > 0) {
-            const clickedBody = clickedBodies[0];
-            toggleInfoMenu(clickedBody);
-        }
-    }
-    dragging = false;
-});
-
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // UI.JS
 
+let clickedCircle = null;
+let previousActiveTags = [];
+let isDragging = false;
+let startPos = { x: 0, y: 0 };
+const dragThreshold = 5; // Adjust the threshold for what constitutes a drag
+
+// Function to find the circle at the given position
+function getCircleAtPosition(position) {
+    return allCircles.find(circle => Matter.Vertices.contains(circle.vertices, position));
+}
+
+// Attach the mouse events for click and drag detection
+Matter.Events.on(mouseConstraint, 'mousedown', function(event) {
+    const mousePosition = event.mouse.position;
+    const circle = getCircleAtPosition(mousePosition);
+    if (circle) {
+        startPos = { x: mousePosition.x, y: mousePosition.y };
+        isDragging = false;
+        circle.mouseDown = true;
+        console.log('Mouse down on circle:', circle);
+    }
+});
+
+Matter.Events.on(mouseConstraint, 'mousemove', function(event) {
+    const mousePosition = event.mouse.position;
+    allCircles.forEach(circle => {
+        if (circle.mouseDown) {
+            const dx = mousePosition.x - startPos.x;
+            const dy = mousePosition.y - startPos.y;
+            if (Math.sqrt(dx * dx + dy * dy) > dragThreshold) {
+                isDragging = true;
+                console.log('Dragging circle:', circle);
+            }
+        }
+    });
+});
+
+Matter.Events.on(mouseConstraint, 'mouseup', function(event) {
+    const mousePosition = event.mouse.position;
+    const circle = getCircleAtPosition(mousePosition);
+    if (circle && circle.mouseDown) {
+        circle.mouseDown = false;
+        if (!isDragging) {
+            console.log('Circle clicked:', circle);
+            toggleInfoMenu(circle);
+        }
+    }
+});
 // Function to toggle circle info
 function toggleInfoMenu(clickedBody) {
     const infoMenu = document.getElementById('info-menu');
     const infoContent = document.getElementById('info-content');
 
-    Body.setStatic(clickedBody, true);
+    // Set the clicked circle as static
+    Matter.Body.setStatic(clickedBody, true);
     clickedCircle = clickedBody;
 
+    // Update the info menu content
     infoContent.innerHTML = clickedBody.infoContent;
     infoMenu.classList.add('show');
 
+    // Hide the circle's text element
     clickedBody.textElement.classList.add('hidden');
 
+    // Create a new element to show the clicked circle image and content
     const newElement = document.createElement('div');
     newElement.id = 'clicked-circle-element';
     newElement.className = 'clicked-circle';
@@ -235,9 +251,11 @@ function toggleInfoMenu(clickedBody) {
 
     document.body.appendChild(newElement);
 
-    previousActiveTags = Array.from(document.querySelectorAll('.tag.active')).map(tag => tag.getAttribute('data-tag'));// Save current active tags
+    // Save current active tags
+    previousActiveTags = Array.from(document.querySelectorAll('.tag.active')).map(tag => tag.getAttribute('data-tag'));
 
-    activateTags(clickedBody.tags);// Activate relevant tags in the filters menu
+    // Activate relevant tags in the filters menu
+    activateTags(clickedBody.tags);
 }
 
 // Function to activate tags in the filters menu
@@ -288,37 +306,167 @@ closeButton.addEventListener('click', () => {
 });
 document.getElementById('info-menu').appendChild(closeButton);
 
+// Function to restore previous active tags
 function restorePreviousActiveTags() {
-    const tagElements = document.querySelectorAll('.filters .tag');
-    tagElements.forEach(tagElement => {
-        const tagValue = tagElement.getAttribute('data-tag');
-        if (previousActiveTags.includes(tagValue)) {
-            tagElement.classList.add('active');
-        } else {
-            tagElement.classList.remove('active');
+    const allTags = document.querySelectorAll('.tag');
+    allTags.forEach(tag => {
+        tag.classList.remove('active');
+        if (previousActiveTags.includes(tag.getAttribute('data-tag'))) {
+            tag.classList.add('active');
         }
     });
-
-    // Apply filters based on the restored tags
     applyFilters();
 }
 
-// Add circles with textures and text
-addCircle(0, 150, 150, '../content/images/pic1.jpg', 'Caroline Polachek', 'US', '<h1>Perfume Genius</h1><p>Artist Info Here...</p>', ['Live Concert', 'Vessel Stage']);
-addCircle(150, 300, 150, '../content/images/pic2.jpg', 'FKA Twigs', 'UK', '<h1>Kate NV</h1><p>Artist Info Here...</p>', ['Live Concert', 'Beach Stage']);
-addCircle(300, 100, 150, '../content/images/pic3.jpg', 'Weyes Blood', 'US', '<h1>Weyes Blood</h1><p>Artist Info Here...</p>', ['Art Exhibition', 'Astral Stage']);
-addCircle(350, 200, 150, '../content/images/pic4.jpg', 'Kate NV', 'RU', '<h1>A.G. Cook</h1><p>Artist Info Here...</p>', ['DJ', 'Space Stage']);
-addCircle(450, 250, 150, '../content/images/pic5.jpg', 'Perfume Genius', 'US', '<h1>Caroline Polachek</h1><p>Artist Info Here...</p>', ['Workshop', 'Amphi Stage']);
+addCircle(0, 550, 100, '../content/images/pic1.jpg', 'Caroline Polachek', 'US', '<h1>Perfume Genius</h1><p>Artist Info Here...</p>', ['Live Concert', 'Vessel Stage']);
+addCircle(150, 500, 100, '../content/images/pic2.jpg', 'FKA Twigs', 'UK', '<h1>Kate NV</h1><p>Artist Info Here...</p>', ['Live Concert', 'Beach Stage']);
+addCircle(300, 700, 100, '../content/images/pic3.jpg', 'Weyes Blood', 'US', '<h1>Weyes Blood</h1><p>Artist Info Here...</p>', ['Art Exhibition', 'Astral Stage']);
+addCircle(350, 800, 100, '../content/images/pic4.jpg', 'Kate NV', 'RU', '<h1>A.G. Cook</h1><p>Artist Info Here...</p>', ['DJ', 'Space Stage']);
+addCircle(450, 450, 100, '../content/images/pic5.jpg', 'Perfume Genius', 'US', '<h1>Caroline Polachek</h1><p>Artist Info Here...</p>', ['Workshop', 'Amphi Stage']);
 
 
-// Create walls
-Composite.add(world, [
-    Bodies.rectangle(1000, -25, 2000, 50, { isStatic: true, render: { visible: false } }),
-    Bodies.rectangle(1000, 2025, 2000, 50, { isStatic: true, render: { visible: false } }),
-    Bodies.rectangle(-25, 1000, 50, 2000, { isStatic: true, render: { visible: false } }),
-    Bodies.rectangle(2025, 1000, 50, 2000, { isStatic: true, render: { visible: false } })
-]);
+let walls = [];
 
+// Function to create walls
+function createWalls() {
+    // Remove existing walls
+    Composite.remove(world, walls);
+    
+    // Create new walls
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    walls = [
+        Bodies.rectangle(width / 2, -25, width, 50, { isStatic: true }), // top
+        Bodies.rectangle(width / 2, height + 25, width, 50, { isStatic: true }), // bottom
+        Bodies.rectangle(-25, height / 2, 50, height, { isStatic: true }), // left
+        Bodies.rectangle(width + 25, height / 2, 50, height, { isStatic: true }) // right
+    ];
+
+    // Add new walls to the world
+    Composite.add(world, walls);
+}
+
+// Initial walls creation
+createWalls();
+
+// Handle window resize
+window.addEventListener('resize', () => {
+    render.options.width = window.innerWidth;
+    render.options.height = window.innerHeight;
+    render.canvas.width = window.innerWidth;
+    render.canvas.height = window.innerHeight;
+
+    setCanvasDPI(canvas); // Reapply DPI scaling
+    createWalls(); // Recreate walls with new dimensions
+
+    // Update render bounds to match new dimensions
+    render.bounds.min.x = 0;
+    render.bounds.min.y = 0;
+    render.bounds.max.x = window.innerWidth;
+    render.bounds.max.y = window.innerHeight;
+
+    // Center the view
+    Render.lookAt(render, {
+        min: { x: 0, y: 0 },
+        max: { x: window.innerWidth, y: window.innerHeight }
+    });
+});
+// Get the center of the viewport
+const viewportCentre = {
+    x: render.options.width * 0.5,
+    y: render.options.height * 0.5
+};
+
+// Set render bounds
+render.bounds.min.x = 0;
+render.bounds.min.y = 0;
+render.bounds.max.x = window.innerWidth;
+render.bounds.max.y = window.innerHeight;
+
+
+// Keep track of current bounds scale (view zoom)
+let boundsScaleTarget = 1;
+let boundsScale = {
+    x: 1,
+    y: 1
+};
+
+// Center the view at the start
+Render.lookAt(render, {
+    min: { x: 0, y: 0 },
+    max: { x: window.innerWidth, y: window.innerHeight }
+});
+
+
+// Set render bounds
+render.bounds.min.x = 0;
+render.bounds.min.y = 0;
+render.bounds.max.x = window.innerWidth;
+render.bounds.max.y = window.innerHeight;
+
+    Events.on(render, 'beforeRender', function() {
+        var mouse = mouseConstraint.mouse,
+            translate;
+    
+        // Mouse wheel controls zoom
+        var scaleFactor = (mouse.wheelDelta * -0.035) || 0;
+        if (scaleFactor !== 0) {
+            if ((scaleFactor < 0 && boundsScale.x >= 0.6) || (scaleFactor > 0 && boundsScale.x <= 1.4)) {
+                boundsScaleTarget += scaleFactor;
+            }
+        }
+    
+        // If scale has changed
+        if (Math.abs(boundsScale.x - boundsScaleTarget) > 0.01) {
+            // Smoothly tween scale factor
+            scaleFactor = (boundsScaleTarget - boundsScale.x) * 0.2;
+            boundsScale.x += scaleFactor;
+            boundsScale.y += scaleFactor;
+    
+            // Scale the render bounds
+            render.bounds.max.x = render.bounds.min.x + render.options.width * boundsScale.x;
+            render.bounds.max.y = render.bounds.min.y + render.options.height * boundsScale.y;
+    
+            // Translate so zoom is from center of view
+            translate = {
+                x: render.options.width * scaleFactor * -0.5,
+                y: render.options.height * scaleFactor * -0.5
+            };
+    
+
+    
+            Bounds.translate(render.bounds, translate);
+    
+            // Update mouse
+            Mouse.setScale(mouse, boundsScale);
+            Mouse.setOffset(mouse, render.bounds.min);
+        }
+    
+        // Get vector from mouse relative to center of viewport
+        var deltaCentre = Vector.sub(mouse.absolute, viewportCentre),
+            centreDist = Vector.magnitude(deltaCentre);
+    
+        // Translate the view if mouse has moved over 50px from the center of viewport
+        if (centreDist > 100) {
+            // Create a vector to translate the view, allowing the user to control view speed
+            var direction = Vector.normalise(deltaCentre),
+                speed = Math.min(10, Math.pow(centreDist - 50, 2) * 0.0002);
+    
+            translate = Vector.mult(direction, speed);
+    
+            // Prevent the view from zooming out of bounds
+            if (render.bounds.min.x + translate.x < 0) translate.x = 0 - render.bounds.min.x;
+            if (render.bounds.min.y + translate.y < 0) translate.y = 0 - render.bounds.min.y;
+            if (render.bounds.max.x + translate.x > window.innerWidth) translate.x = window.innerWidth - render.bounds.max.x;
+            if (render.bounds.max.y + translate.y > window.innerHeight) translate.y = window.innerHeight - render.bounds.max.y;
+            // Move the view
+            Bounds.translate(render.bounds, translate);
+    
+            // We must update the mouse too
+            Mouse.setOffset(mouse, render.bounds.min);
+        }
+    });
 
 // Run the engine and renderer
 Runner.run(engine);
