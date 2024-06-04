@@ -95,7 +95,7 @@ canvas#matterCanvas {
     gap: 10px;
 }
 
-.menu, .filters, .info-menu, .clicked-circle, .news-tab, .card-bg, .card, .buttons button, .card-bg   {
+.menu, .filters, .info-menu, .news-tab, .card-bg, .card, .buttons button, .card-bg   {
     background-color: var(--menu-color);
     backdrop-filter: blur(30px);
     -webkit-backdrop-filter: blur(30px);
@@ -225,17 +225,6 @@ canvas#matterCanvas {
     content: '\00d7'; /* Unicode for multiplication sign (×) */
     font-size: 30px; /* Adjust the size as needed */
     font-weight: 100; /* Light weight for a minimalist look */
-}
-
-.clicked-circle {
-    aspect-ratio: 2.5 / 4;
-    position: fixed; /* Fixed position to align with menus */
-    top: 280px; /* Adjust based on where you want it aligned */
-    left: 10px; /* Adjust based on where you want it aligned */
-    height: 580px; /* Adjust size as needed */
-    background-size:90%; /* Ensure the background image covers the element */
-    background-repeat: no-repeat; /* Prevent the background image from repeating */
-    background-position:50% 13%; /* Center the background image */
 }
 
 .clicked-circle-content {

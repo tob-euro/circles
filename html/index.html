@@ -4,10 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#f0f0f0">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.17.1/matter.min.js"></script>
   <title>Index</title>
-  <link href="content/fav/imagesfavicon.ico" rel="icon" type="image/x-icon">
-  <link rel="stylesheet" href="../css/styles.css">
+  <link href="content/fav/images/favicon.ico" rel="icon" type="image/x-icon">
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div class="navigation">
@@ -30,8 +29,8 @@
   </div>
 
   <div class="frame" id="frame">
-      <canvas id="matterCanvas"></canvas>
-      <div id="overlay-container"></div>
+    <canvas id="matterCanvas"></canvas>
+    <div id="overlay-container"></div>
   </div>
 
   <script>
@@ -45,7 +44,6 @@
         });
     });
   </script>
-    <script src="../js/filters.js" defer></script>
-    <script src="../js/main.js" defer></script>
+  <script src="bundle.js"></script> <!-- Correct path to the bundled JavaScript -->
 </body>
 </html>

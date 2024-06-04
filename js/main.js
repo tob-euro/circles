@@ -185,6 +185,94 @@ function getCircleAtPosition(position) {
     return allCircles.find(circle => Matter.Vertices.contains(circle.vertices, position));
 }
 
+// Constants for zoom target
+const ZOOM_TARGET_SCALE = 4; // The scale you want the circle to fill
+const ZOOM_DURATION = 1000; // Duration of the zoom in milliseconds
+const TARGET_POSITION = { x: window.innerWidth / 7, y: window.innerHeight / 1.5 }; // Target position to center the circle
+
+let isZooming = false; // Flag to disable zooming and panning during info display
+
+// Function to smoothly zoom and pan to a target circle and display info
+function zoomToCircle(targetCircle) {
+    isZooming = true; // Disable further zooming and panning
+
+    const startBounds = { ...render.bounds };
+    const endBounds = calculateTargetBounds(targetCircle);
+
+    const startTime = performance.now();
+
+    function animateZoom(currentTime) {
+        const elapsedTime = currentTime - startTime;
+        const progress = Math.min(elapsedTime / ZOOM_DURATION, 1);
+
+        const interpolatedBounds = interpolateBounds(startBounds, endBounds, progress);
+
+        render.bounds.min.x = interpolatedBounds.min.x;
+        render.bounds.min.y = interpolatedBounds.min.y;
+        render.bounds.max.x = interpolatedBounds.max.x;
+        render.bounds.max.y = interpolatedBounds.max.y;
+
+        Render.lookAt(render, {
+            min: { x: render.bounds.min.x, y: render.bounds.min.y },
+            max: { x: render.bounds.max.x, y: render.bounds.max.y }
+        });
+
+        if (progress < 1) {
+            requestAnimationFrame(animateZoom);
+        } else {
+            // After zooming is complete, show the info menu
+            showInfoMenu(targetCircle);
+        }
+    }
+
+    requestAnimationFrame(animateZoom);
+}
+
+// Function to calculate target bounds to center and zoom into the circle
+function calculateTargetBounds(targetCircle) {
+    const circlePosition = targetCircle.position;
+    const circleRadius = targetCircle.circleRadius * ZOOM_TARGET_SCALE;
+
+    const min = {
+        x: circlePosition.x - TARGET_POSITION.x / ZOOM_TARGET_SCALE,
+        y: circlePosition.y - TARGET_POSITION.y / ZOOM_TARGET_SCALE
+    };
+    const max = {
+        x: min.x + window.innerWidth / ZOOM_TARGET_SCALE,
+        y: min.y + window.innerHeight / ZOOM_TARGET_SCALE
+    };
+
+    return { min, max };
+}
+
+// Function to interpolate between start and end bounds
+function interpolateBounds(start, end, t) {
+    return {
+        min: {
+            x: start.min.x + (end.min.x - start.min.x) * t,
+            y: start.min.y + (end.min.y - start.min.y) * t
+        },
+        max: {
+            x: start.max.x + (end.max.x - start.max.x) * t,
+            y: start.max.y + (end.max.y - start.max.y) * t
+        }
+    };
+}
+
+// Modify the existing mouseup event to call zoomToCircle
+Matter.Events.on(mouseConstraint, 'mouseup', function(event) {
+    const mousePosition = event.mouse.position;
+    const circle = getCircleAtPosition(mousePosition);
+    if (circle && circle.mouseDown) {
+        circle.mouseDown = false;
+        if (!isDragging) {
+            console.log('Circle clicked:', circle);
+            zoomToCircle(circle); // Call zoomToCircle instead of toggleInfoMenu
+        }
+    }
+});
+
+
 // Attach the mouse events for click and drag detection
 Matter.Events.on(mouseConstraint, 'mousedown', function(event) {
     const mousePosition = event.mouse.position;
@@ -222,31 +310,28 @@ Matter.Events.on(mouseConstraint, 'mouseup', function(event) {
         }
     }
 });
-// Function to toggle circle info
-function toggleInfoMenu(clickedBody) {
+// Function to show the info menu
+function showInfoMenu(clickedCircle) {
     const infoMenu = document.getElementById('info-menu');
     const infoContent = document.getElementById('info-content');
 
     // Set the clicked circle as static
-    Matter.Body.setStatic(clickedBody, true);
-    clickedCircle = clickedBody;
+    Matter.Body.setStatic(clickedCircle, true);
+    clickedCircle.textElement.classList.add('hidden'); // Hide the circle's text element
 
     // Update the info menu content
-    infoContent.innerHTML = clickedBody.infoContent;
+    infoContent.innerHTML = clickedCircle.infoContent;
     infoMenu.classList.add('show');
-
-    // Hide the circle's text element
-    clickedBody.textElement.classList.add('hidden');
 
     // Create a new element to show the clicked circle image and content
     const newElement = document.createElement('div');
     newElement.id = 'clicked-circle-element';
     newElement.className = 'clicked-circle';
-    newElement.style.backgroundImage = `url(${clickedBody.render.sprite.texture})`;
+    newElement.style.backgroundImage = `url(${clickedCircle.render.sprite.texture})`;
 
     const contentElement = document.createElement('div');
     contentElement.className = 'clicked-circle-content';
-    contentElement.innerHTML = clickedBody.infoContent;
+    contentElement.innerHTML = clickedCircle.infoContent;
     newElement.appendChild(contentElement);
 
     document.body.appendChild(newElement);
@@ -255,7 +340,10 @@ function toggleInfoMenu(clickedBody) {
     previousActiveTags = Array.from(document.querySelectorAll('.tag.active')).map(tag => tag.getAttribute('data-tag'));
 
     // Activate relevant tags in the filters menu
-    activateTags(clickedBody.tags);
+    activateTags(clickedCircle.tags);
+
+    // Add close button functionality
+    document.getElementById('close-info-menu').addEventListener('click', closeInfoMenu);
 }
 
 // Function to activate tags in the filters menu
@@ -300,6 +388,7 @@ closeButton.addEventListener('click', () => {
         }
     }
     infoMenu.classList.remove('show');
+    isZooming = false
 
     // Restore previous active tags
     restorePreviousActiveTags();
@@ -318,11 +407,11 @@ function restorePreviousActiveTags() {
     applyFilters();
 }
 
-addCircle(0, 550, 100, '../content/images/pic1.jpg', 'Caroline Polachek', 'US', '<h1>Perfume Genius</h1><p>Artist Info Here...</p>', ['Live Concert', 'Vessel Stage']);
-addCircle(150, 500, 100, '../content/images/pic2.jpg', 'FKA Twigs', 'UK', '<h1>Kate NV</h1><p>Artist Info Here...</p>', ['Live Concert', 'Beach Stage']);
-addCircle(300, 700, 100, '../content/images/pic3.jpg', 'Weyes Blood', 'US', '<h1>Weyes Blood</h1><p>Artist Info Here...</p>', ['Art Exhibition', 'Astral Stage']);
-addCircle(350, 800, 100, '../content/images/pic4.jpg', 'Kate NV', 'RU', '<h1>A.G. Cook</h1><p>Artist Info Here...</p>', ['DJ', 'Space Stage']);
-addCircle(450, 450, 100, '../content/images/pic5.jpg', 'Perfume Genius', 'US', '<h1>Caroline Polachek</h1><p>Artist Info Here...</p>', ['Workshop', 'Amphi Stage']);
+addCircle(0, 550, 50, '../content/images/pic1.jpg', 'Caroline Polachek', 'US', '<h1>Perfume Genius</h1><p>Artist Info Here...</p>', ['Live Concert', 'Vessel Stage']);
+addCircle(150, 500, 50, '../content/images/pic2.jpg', 'FKA Twigs', 'UK', '<h1>Kate NV</h1><p>Artist Info Here...</p>', ['Live Concert', 'Beach Stage']);
+addCircle(300, 700, 50, '../content/images/pic3.jpg', 'Weyes Blood', 'US', '<h1>Weyes Blood</h1><p>Artist Info Here...</p>', ['Art Exhibition', 'Astral Stage']);
+addCircle(350, 400, 50, '../content/images/pic4.jpg', 'Kate NV', 'RU', '<h1>A.G. Cook</h1><p>Artist Info Here...</p>', ['DJ', 'Space Stage']);
+addCircle(450, 450, 50, '../content/images/pic5.jpg', 'Perfume Genius', 'US', '<h1>Caroline Polachek</h1><p>Artist Info Here...</p>', ['Workshop', 'Amphi Stage']);
 
 
 let walls = [];
@@ -386,7 +475,7 @@ render.bounds.max.y = window.innerHeight;
 
 
 // Keep track of current bounds scale (view zoom)
-let boundsScaleTarget = 1;
+let boundsScaleTarget = 0.5;
 let boundsScale = {
     x: 1,
     y: 1
@@ -405,68 +494,72 @@ render.bounds.min.y = 0;
 render.bounds.max.x = window.innerWidth;
 render.bounds.max.y = window.innerHeight;
 
-    Events.on(render, 'beforeRender', function() {
-        var mouse = mouseConstraint.mouse,
-            translate;
-    
-        // Mouse wheel controls zoom
-        var scaleFactor = (mouse.wheelDelta * -0.035) || 0;
-        if (scaleFactor !== 0) {
-            if ((scaleFactor < 0 && boundsScale.x >= 0.6) || (scaleFactor > 0 && boundsScale.x <= 1.4)) {
-                boundsScaleTarget += scaleFactor;
-            }
-        }
-    
-        // If scale has changed
-        if (Math.abs(boundsScale.x - boundsScaleTarget) > 0.01) {
-            // Smoothly tween scale factor
-            scaleFactor = (boundsScaleTarget - boundsScale.x) * 0.2;
-            boundsScale.x += scaleFactor;
-            boundsScale.y += scaleFactor;
-    
-            // Scale the render bounds
-            render.bounds.max.x = render.bounds.min.x + render.options.width * boundsScale.x;
-            render.bounds.max.y = render.bounds.min.y + render.options.height * boundsScale.y;
-    
-            // Translate so zoom is from center of view
-            translate = {
-                x: render.options.width * scaleFactor * -0.5,
-                y: render.options.height * scaleFactor * -0.5
-            };
-    
+    // Disable zooming and panning during info display
+Events.on(render, 'beforeRender', function() {
+    if (isZooming) return; // Disable zooming and panning when info menu is displayed
 
-    
-            Bounds.translate(render.bounds, translate);
-    
-            // Update mouse
-            Mouse.setScale(mouse, boundsScale);
-            Mouse.setOffset(mouse, render.bounds.min);
+    var mouse = mouseConstraint.mouse,
+        translate;
+
+    // Mouse wheel controls zoom
+    var scaleFactor = (mouse.wheelDelta * -0.035) || 0;
+    if (scaleFactor !== 0) {
+        if ((scaleFactor < 0 && boundsScale.x >= 0.6) || (scaleFactor > 0 && boundsScale.x <= 1.4)) {
+            boundsScaleTarget += scaleFactor;
+            // Cap the boundsScaleTarget to a maximum of 1
+            boundsScaleTarget = Math.min(boundsScaleTarget, 1);
         }
-    
-        // Get vector from mouse relative to center of viewport
-        var deltaCentre = Vector.sub(mouse.absolute, viewportCentre),
-            centreDist = Vector.magnitude(deltaCentre);
-    
-        // Translate the view if mouse has moved over 50px from the center of viewport
-        if (centreDist > 100) {
-            // Create a vector to translate the view, allowing the user to control view speed
-            var direction = Vector.normalise(deltaCentre),
-                speed = Math.min(10, Math.pow(centreDist - 50, 2) * 0.0002);
-    
-            translate = Vector.mult(direction, speed);
-    
-            // Prevent the view from zooming out of bounds
-            if (render.bounds.min.x + translate.x < 0) translate.x = 0 - render.bounds.min.x;
-            if (render.bounds.min.y + translate.y < 0) translate.y = 0 - render.bounds.min.y;
-            if (render.bounds.max.x + translate.x > window.innerWidth) translate.x = window.innerWidth - render.bounds.max.x;
-            if (render.bounds.max.y + translate.y > window.innerHeight) translate.y = window.innerHeight - render.bounds.max.y;
-            // Move the view
-            Bounds.translate(render.bounds, translate);
-    
-            // We must update the mouse too
-            Mouse.setOffset(mouse, render.bounds.min);
-        }
-    });
+    }
+
+    // If scale has changed
+    if (Math.abs(boundsScale.x - boundsScaleTarget) > 0.01) {
+        // Smoothly tween scale factor
+        scaleFactor = (boundsScaleTarget - boundsScale.x) * 0.2;
+        boundsScale.x += scaleFactor;
+        boundsScale.y += scaleFactor;
+
+        // Scale the render bounds
+        render.bounds.max.x = render.bounds.min.x + render.options.width * boundsScale.x;
+        render.bounds.max.y = render.bounds.min.y + render.options.height * boundsScale.y;
+
+        // Translate so zoom is from center of view
+        translate = {
+            x: render.options.width * scaleFactor * -0.5,
+            y: render.options.height * scaleFactor * -0.5
+        };
+
+        Bounds.translate(render.bounds, translate);
+
+        // Update mouse
+        Mouse.setScale(mouse, boundsScale);
+        Mouse.setOffset(mouse, render.bounds.min);
+    }
+
+    // Get vector from mouse relative to center of viewport
+    var deltaCentre = Vector.sub(mouse.absolute, viewportCentre),
+        centreDist = Vector.magnitude(deltaCentre);
+
+    // Translate the view if mouse has moved over 50px from the center of viewport
+    if (centreDist > 100) {
+        // Create a vector to translate the view, allowing the user to control view speed
+        var direction = Vector.normalise(deltaCentre),
+            speed = Math.min(10, Math.pow(centreDist - 50, 2) * 0.0002);
+
+        translate = Vector.mult(direction, speed);
+
+        // Prevent the view from zooming out of bounds
+        if (render.bounds.min.x + translate.x < 0) translate.x = 0 - render.bounds.min.x;
+        if (render.bounds.min.y + translate.y < 0) translate.y = 0 - render.bounds.min.y;
+        if (render.bounds.max.x + translate.x > window.innerWidth) translate.x = window.innerWidth - render.bounds.max.x;
+        if (render.bounds.max.y + translate.y > window.innerHeight) translate.y = window.innerHeight - render.bounds.max.y;
+
+        // Move the view
+        Bounds.translate(render.bounds, translate);
+
+        // We must update the mouse too
+        Mouse.setOffset(mouse, render.bounds.min);
+    }
+});
 
 // Run the engine and renderer
 Runner.run(engine);
