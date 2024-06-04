@@ -1,6 +1,6 @@
-import { Bodies, Composite } from 'matter-js';
-import { world, render, boundsScale } from './engine.js';
-import { updateTextPosition, createCircleDOMElement, animateBodyAppearance } from './ui.js';
+import { Bodies, Composite, Events, Vertices } from 'matter-js';
+import { world, render, boundsScale, engine } from './world.js';
+import {animateBodyAppearance } from './filters.js';
 
 export const allCircles = [];
 const scaleFactor = 4;
@@ -57,8 +57,50 @@ export function addCircle(x, y, radius, textureUrl, text, supText, infoContent, 
     });
 }
 
+export function createCircleDOMElement(circle) {
+    const overlayContainer = document.getElementById('overlay-container');
+    
+    const textContainer = document.createElement('div');
+    textContainer.className = 'overlay-text';
+    
+    const textElement = document.createElement('span');
+    textElement.textContent = circle.text;
+    
+    const supElement = document.createElement('sup');
+    supElement.className = 'superscript';
+    supElement.textContent = circle.supText;
+    
+    textElement.appendChild(supElement);
+    textContainer.appendChild(textElement);
+    
+    overlayContainer.appendChild(textContainer);
+
+    circle.textElement = textContainer;
+
+    updateTextPosition(circle);
+}
+
+export function updateTextPosition(circle) {
+    if (circle.textElement) {
+        const { x, y } = circle.position;
+
+        const scaledX = (x - render.bounds.min.x) / boundsScale.x;
+        const scaledY = (y - render.bounds.min.y) / boundsScale.y;
+
+        circle.textElement.style.left = `${scaledX}px`;
+        circle.textElement.style.top = `${scaledY}px`;
+        circle.textElement.style.transform = 'translate(-50%, -50%)';
+    }
+}
+
+Events.on(engine, 'afterUpdate', function() {
+    allCircles.forEach(circle => {
+        updateTextPosition(circle);
+    });
+});
+
 export function getCircleAtPosition(position) {
-    return allCircles.find(circle => Matter.Vertices.contains(circle.vertices, position));
+    return allCircles.find(circle => Vertices.contains(circle.vertices, position));
 }
 
 export function setupCircles() {

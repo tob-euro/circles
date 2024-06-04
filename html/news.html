@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#f0f0f0">
-    <title>Festival Program</title>
-    <link rel="stylesheet" href="../css/styles.css">
-    <script src="../js/filters.js" defer></script>
+    <title>News</title> 
 </head>
 
 <body>
@@ -49,45 +47,53 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 
     // Fetch news articles from JSON file
-    fetch('../content/news.json') // Adjust the path to your JSON file as needed
-        .then(response => response.json())
-        .then(data => {
-            const featuredContainer = document.getElementById('featured-stories');
-            const allNewsContainer = document.getElementById('all-news');
+    fetch('content/news.json')
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok ' + response.statusText);
+        }
+        return response.json();
+    })
+    .then(data => {
+        const featuredContainer = document.getElementById('featured-stories');
+        const allNewsContainer = document.getElementById('all-news');
 
-            data.forEach(article => {
-                const card = document.createElement('div');
-                card.className = 'card';
-                card.id = article.id;
+        data.forEach(article => {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.id = article.id;
 
-                // Replace newline characters with <br>
-                const contentHtml = article.content.replace(/\n/g, '<br>');
+            const contentHtml = article.content.replace(/\n/g, '<br>');
 
-                card.innerHTML = `
-                    <img src="${article.image}" alt="${article.title}">
-                    <div class="card-bg">
-                        <h2>${article.title}</h2>
-                        <div class="info">
-                            <span class="date">${article.date}</span>
-                            <span class="tag">${article.tag}</span>
-                        </div>
-                        <div class="card-content">
-                            <span class="content">${contentHtml}</span>
-                        </div>
+            card.innerHTML = `
+                <img src="${article.image}" alt="${article.title}">
+                <div class="card-bg">
+                    <h2>${article.title}</h2>
+                    <div class="info">
+                        <span class="date">${article.date}</span>
+                        <span class="tag">${article.tag}</span>
                     </div>
-                    <div class="buttons">
-                        <button class="share" onclick="window.open('${article.share_url}', '_blank')">Share</button>
-                        <button class="read-more" onclick="window.location.href='${article.read_more_url}'">Read more →</button>
+                    <div class="card-content">
+                        <span class="content">${contentHtml}</span>
                     </div>
-                `;
+                </div>
+                <div class="buttons">
+                    <button class="share" onclick="window.open('${article.share_url}', '_blank')">Share</button>
+                    <button class="read-more" onclick="window.location.href='${article.read_more_url}'">Read more →</button>
+                </div>
+            `;
 
-                if (article.isFeatured) {
-                    featuredContainer.appendChild(card);
-                } else {
-                    allNewsContainer.appendChild(card);
-                }
-            });
-        })
+            if (article.isFeatured) {
+                featuredContainer.appendChild(card);
+            } else {
+                allNewsContainer.appendChild(card);
+            }
+        });
+    })
+    .catch(error => {
+        console.error('There has been a problem with your fetch operation:', error);
+    });
+
 });
     </script>
 </body>

@@ -1,4 +1,4 @@
-import { Engine, Render, Runner, Composite, Mouse, MouseConstraint, Events, Vector, Bounds } from 'matter-js';
+import { Bodies, Engine, Render, Runner, Composite, Mouse, MouseConstraint, Events, Vector, Bounds } from 'matter-js';
 
 export const engine = Engine.create();
 export const world = engine.world;
@@ -29,7 +29,6 @@ export function setCanvasDPI(canvas) {
         context.scale(ratio, ratio);
     }
 }
-
 setCanvasDPI(canvas);
 
 export const render = Render.create({
@@ -47,6 +46,7 @@ export const render = Render.create({
 
 Render.run(render);
 
+// mouse drag control
 export const mouse = Mouse.create(render.canvas);
 export const mouseConstraint = MouseConstraint.create(engine, {
     mouse: mouse,
@@ -59,6 +59,54 @@ export const mouseConstraint = MouseConstraint.create(engine, {
 });
 Composite.add(world, mouseConstraint);
 
+let walls = [];
+
+// Function to create walls
+function createWalls() {
+    // Remove existing walls
+    Composite.remove(world, walls);
+    
+    // Create new walls
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    walls = [
+        Bodies.rectangle(width / 2, -25, width, 50, { isStatic: true }), // top
+        Bodies.rectangle(width / 2, height + 25, width, 50, { isStatic: true }), // bottom
+        Bodies.rectangle(-25, height / 2, 50, height, { isStatic: true }), // left
+        Bodies.rectangle(width + 25, height / 2, 50, height, { isStatic: true }) // right
+    ];
+
+    // Add new walls to the world
+    Composite.add(world, walls);
+}
+
+// Initial walls creation
+createWalls();
+
+// Handle window resize
+window.addEventListener('resize', () => {
+    render.options.width = window.innerWidth;
+    render.options.height = window.innerHeight;
+    render.canvas.width = window.innerWidth;
+    render.canvas.height = window.innerHeight;
+
+    setCanvasDPI(canvas); // Reapply DPI scaling
+    createWalls(); // Recreate walls with new dimensions
+
+    // Update render bounds to match new dimensions
+    render.bounds.min.x = 0;
+    render.bounds.min.y = 0;
+    render.bounds.max.x = window.innerWidth;
+    render.bounds.max.y = window.innerHeight;
+
+    // Center the view
+    Render.lookAt(render, {
+        min: { x: 0, y: 0 },
+        max: { x: window.innerWidth, y: window.innerHeight }
+    });
+});
+
 export const viewportCentre = {
     x: render.options.width * 0.5,
     y: render.options.height * 0.5
@@ -70,10 +118,12 @@ export let boundsScale = {
     y: 1
 };
 
-export let isZooming = false;
+export let state = {
+    isZooming: false
+};
 
 Events.on(render, 'beforeRender', function() {
-    if (isZooming) return;
+    if (state.isZooming) return;
 
     var translate;
 

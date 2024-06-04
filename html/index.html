@@ -5,8 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#f0f0f0">
   <title>Index</title>
-  <link href="content/fav/images/favicon.ico" rel="icon" type="image/x-icon">
-  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div class="navigation">
@@ -20,30 +18,16 @@
         </ul>
       </nav>
     </div>
-
     <div class="filters"></div>
-
     <div id="info-menu" class="info-menu hidden">
       <div id="info-content"></div>
-    </div>
+      <button id="close-btn">Close</button> <!-- Ensure this button exists -->
   </div>
-
+  </div>
   <div class="frame" id="frame">
     <canvas id="matterCanvas"></canvas>
     <div id="overlay-container"></div>
   </div>
-
-  <script>
-    document.addEventListener("DOMContentLoaded", function() {
-        const currentPath = window.location.pathname.split('/').pop();
-        const menuLinks = document.querySelectorAll('.menu nav ul li a');
-        menuLinks.forEach(link => {
-            if (link.getAttribute('href') === currentPath) {
-                link.classList.add('active');
-            }
-        });
-    });
-  </script>
-  <script src="bundle.js"></script> <!-- Correct path to the bundled JavaScript -->
+  <script src="bundle.js"></script>
 </body>
 </html>

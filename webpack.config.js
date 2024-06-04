@@ -3,8 +3,8 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 module.exports = {
-  mode: 'development', // Add this line to set the mode to 'development'
-  entry: './js/index.js',
+  mode: 'development',
+  entry: './js/main.js',
   output: {
     filename: 'bundle.js',
     path: path.resolve(__dirname, 'dist'),
@@ -27,6 +27,10 @@ module.exports = {
           },
         },
       },
+      {
+        test: /\.css$/,
+        use: ['style-loader', 'css-loader'],
+      },
     ],
   },
   plugins: [
@@ -40,8 +44,7 @@ module.exports = {
     }),
     new CopyWebpackPlugin({
       patterns: [
-        { from: 'content', to: 'content' },
-        { from: 'css/styles.css', to: 'styles.css' }
+        { from: 'content', to: 'content' }
       ]
     })
   ],

@@ -1,52 +1,12 @@
-import { Events, Vector, Bounds, Body } from 'matter-js';
-import { render, mouseConstraint, viewportCentre, isZooming, boundsScale, boundsScaleTarget } from './engine.js';
-import { getCircleAtPosition } from './circles.js';
+import { Events, Body, Render } from 'matter-js';
+import { render, mouseConstraint, state } from './world.js';
+import { getCircleAtPosition, allCircles } from './circles.js';
+import { restorePreviousActiveTags, activateTags, setPreviousActiveTags } from './filters.js';
 
-export function createCircleDOMElement(circle) {
-    const overlayContainer = document.getElementById('overlay-container');
-    
-    const textContainer = document.createElement('div');
-    textContainer.className = 'overlay-text';
-    
-    const textElement = document.createElement('span');
-    textElement.textContent = circle.text;
-    
-    const supElement = document.createElement('sup');
-    supElement.className = 'superscript';
-    supElement.textContent = circle.supText;
-    
-    textElement.appendChild(supElement);
-    textContainer.appendChild(textElement);
-    
-    overlayContainer.appendChild(textContainer);
-
-    circle.textElement = textContainer;
-
-    updateTextPosition(circle);
-}
-
-export function updateTextPosition(circle) {
-    if (circle.textElement) {
-        const { x, y } = circle.position;
-
-        const scaledX = (x - render.bounds.min.x) / boundsScale.x;
-        const scaledY = (y - render.bounds.min.y) / boundsScale.y;
-
-        circle.textElement.style.left = `${scaledX}px`;
-        circle.textElement.style.top = `${scaledY}px`;
-        circle.textElement.style.transform = 'translate(-50%, -50%)';
-    }
-}
-
-Events.on(engine, 'afterUpdate', function() {
-    allCircles.forEach(circle => {
-        updateTextPosition(circle);
-    });
-});
-
-export function animateBodyAppearance(body) {
-    // Your animation logic here
-}
+let clickedCircle = null;
+let isDragging = false;
+let startPos = { x: 0, y: 0 };
+const dragThreshold = 5; // Adjust the threshold for what constitutes a drag
 
 export function showInfoMenu(clickedCircle) {
     const infoMenu = document.getElementById('info-menu');
@@ -70,15 +30,50 @@ export function showInfoMenu(clickedCircle) {
 
     document.body.appendChild(newElement);
 
-    previousActiveTags = Array.from(document.querySelectorAll('.tag.active')).map(tag => tag.getAttribute('data-tag'));
+    setPreviousActiveTags(Array.from(document.querySelectorAll('.tag.active')).map(tag => tag.getAttribute('data-tag')));
 
     activateTags(clickedCircle.tags);
 
-    document.getElementById('close-info-menu').addEventListener('click', closeInfoMenu);
+
+}
+
+// Constants for zoom target
+const ZOOM_TARGET_SCALE = 4; // The scale you want the circle to fill
+const ZOOM_DURATION = 1000; // Duration of the zoom in milliseconds
+const TARGET_POSITION = { x: window.innerWidth / 7, y: window.innerHeight / 1.5 }; // Target position to center the circle
+
+function calculateTargetBounds(targetCircle) {
+    const circlePosition = targetCircle.position;
+    const circleRadius = targetCircle.circleRadius * ZOOM_TARGET_SCALE;
+
+    const min = {
+        x: circlePosition.x - TARGET_POSITION.x / ZOOM_TARGET_SCALE,
+        y: circlePosition.y - TARGET_POSITION.y / ZOOM_TARGET_SCALE
+    };
+    const max = {
+        x: min.x + window.innerWidth / ZOOM_TARGET_SCALE,
+        y: min.y + window.innerHeight / ZOOM_TARGET_SCALE
+    };
+
+    return { min, max };
+}
+
+// Function to interpolate between start and end bounds
+function interpolateBounds(start, end, t) {
+    return {
+        min: {
+            x: start.min.x + (end.min.x - start.min.x) * t,
+            y: start.min.y + (end.min.y - start.min.y) * t
+        },
+        max: {
+            x: start.max.x + (end.max.x - start.max.x) * t,
+            y: start.max.y + (end.max.y - start.max.y) * t
+        }
+    };
 }
 
 export function zoomToCircle(targetCircle) {
-    isZooming = true;
+    state.isZooming = true;
 
     const startBounds = { ...render.bounds };
     const endBounds = calculateTargetBounds(targetCircle);
@@ -113,12 +108,11 @@ export function zoomToCircle(targetCircle) {
 
 export function setupUI() {
     let clickedCircle = null;
-    let previousActiveTags = [];
     let isDragging = false;
     let startPos = { x: 0, y: 0 };
     const dragThreshold = 5;
 
-    Matter.Events.on(mouseConstraint, 'mouseup', function(event) {
+    Events.on(mouseConstraint, 'mouseup', function(event) {
         const mousePosition = event.mouse.position;
         const circle = getCircleAtPosition(mousePosition);
         if (circle && circle.mouseDown) {
@@ -129,7 +123,7 @@ export function setupUI() {
         }
     });
 
-    Matter.Events.on(mouseConstraint, 'mousedown', function(event) {
+    Events.on(mouseConstraint, 'mousedown', function(event) {
         const mousePosition = event.mouse.position;
         const circle = getCircleAtPosition(mousePosition);
         if (circle) {
@@ -139,7 +133,7 @@ export function setupUI() {
         }
     });
 
-    Matter.Events.on(mouseConstraint, 'mousemove', function(event) {
+    Events.on(mouseConstraint, 'mousemove', function(event) {
         const mousePosition = event.mouse.position;
         allCircles.forEach(circle => {
             if (circle.mouseDown) {
@@ -152,7 +146,7 @@ export function setupUI() {
         });
     });
 
-    Matter.Events.on(mouseConstraint, 'mouseup', function(event) {
+    Events.on(mouseConstraint, 'mouseup', function(event) {
         const mousePosition = event.mouse.position;
         const circle = getCircleAtPosition(mousePosition);
         if (circle && circle.mouseDown) {
@@ -162,25 +156,6 @@ export function setupUI() {
             }
         }
     });
-
-    function activateTags(tags) {
-        const tagElements = document.querySelectorAll('.filters .tag');
-        tagElements.forEach(tagElement => {
-            const tagCategory = tagElement.getAttribute('data-category');
-            const tagValue = tagElement.getAttribute('data-tag');
-
-            if (tags.includes(tagValue)) {
-                const categoryTags = document.querySelectorAll(`.filters .tag[data-category="${tagCategory}"]`);
-                categoryTags.forEach(categoryTag => {
-                    categoryTag.classList.remove('active');
-                });
-
-                tagElement.classList.add('active');
-            }
-        });
-
-        applyFilters();
-    }
 
     const closeButton = document.createElement('button');
     closeButton.className = 'close-btn';
@@ -199,20 +174,9 @@ export function setupUI() {
             }
         }
         infoMenu.classList.remove('show');
-        isZooming = false;
+        state.isZooming = false;
 
         restorePreviousActiveTags();
     });
     document.getElementById('info-menu').appendChild(closeButton);
-
-    function restorePreviousActiveTags() {
-        const allTags = document.querySelectorAll('.tag');
-        allTags.forEach(tag => {
-            tag.classList.remove('active');
-            if (previousActiveTags.includes(tag.getAttribute('data-tag'))) {
-                tag.classList.add('active');
-            }
-        });
-        applyFilters();
-    }
 }
