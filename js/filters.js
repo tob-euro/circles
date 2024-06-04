@@ -259,12 +259,18 @@ document.addEventListener('DOMContentLoaded', () => {
         generateFiltersHTML(filters);
     }
 
+    // Remove any existing listeners
+    const filtersElement = document.querySelector('.filters');
+    const newFiltersElement = filtersElement.cloneNode(true);
+    filtersElement.parentNode.replaceChild(newFiltersElement, filtersElement);
+
     // Add event listener for tag activation
-    document.querySelector('.filters').addEventListener('click', (event) => {
+    newFiltersElement.addEventListener('click', (event) => {
         console.log("Tag clicked:", event.target);
         if (event.target.classList.contains('tag')) {
             activateTag(event.target);
         }
     });
 });
+
 

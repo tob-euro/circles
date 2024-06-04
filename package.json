@@ -2,7 +2,7 @@
   "name": "circles",
   "version": "1.0.0",
   "description": "This project is based off a design project from KADK. Originally intended as a website for KUNE Festival, this pilot project expands that original design in building a more general design concept using the Matter.js library.",
-  "main": "js/main.js",
+  "main": "js/world.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "webpack",

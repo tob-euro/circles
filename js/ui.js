@@ -179,4 +179,6 @@ export function setupUI() {
         restorePreviousActiveTags();
     });
     document.getElementById('info-menu').appendChild(closeButton);
+
+    restorePreviousActiveTags();
 }

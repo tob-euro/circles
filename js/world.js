@@ -1,4 +1,8 @@
 import { Bodies, Engine, Render, Runner, Composite, Mouse, MouseConstraint, Events, Vector, Bounds } from 'matter-js';
+import '../css/styles.css';
+import { setupCircles, addCircle } from './circles';
+import { setupUI } from './ui';
+
 
 export const engine = Engine.create();
 export const world = engine.world;
@@ -113,10 +117,7 @@ export const viewportCentre = {
 };
 
 export let boundsScaleTarget = 0.5;
-export let boundsScale = {
-    x: 1,
-    y: 1
-};
+export let boundsScale = {x: 1, y: 1};
 
 export let state = {
     isZooming: false
@@ -174,7 +175,12 @@ Events.on(render, 'beforeRender', function() {
     }
 });
 
-export function setupEngine() {
-    Runner.run(engine);
-    Render.run(render);
-}
+
+setupUI();
+addCircle(0, 550, 50, '../content/images/pic1.jpg', 'Caroline Polachek', 'US', '<h1>Perfume Genius</h1><p>Artist Info Here...</p>', ['Live Concert', 'Vessel Stage']);
+addCircle(150, 500, 50, '../content/images/pic2.jpg', 'FKA Twigs', 'UK', '<h1>Kate NV</h1><p>Artist Info Here...</p>', ['Live Concert', 'Beach Stage']);
+addCircle(300, 700, 50, '../content/images/pic3.jpg', 'Weyes Blood', 'US', '<h1>Weyes Blood</h1><p>Artist Info Here...</p>', ['Art Exhibition', 'Astral Stage']);
+addCircle(350, 400, 50, '../content/images/pic4.jpg', 'Kate NV', 'RU', '<h1>A.G. Cook</h1><p>Artist Info Here...</p>', ['DJ', 'Space Stage']);
+addCircle(450, 450, 50, '../content/images/pic5.jpg', 'Perfume Genius', 'US', '<h1>Caroline Polachek</h1><p>Artist Info Here...</p>', ['Workshop', 'Amphi Stage']);
+Runner.run(engine);
+Render.run(render);
