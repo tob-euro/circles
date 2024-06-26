@@ -1,7 +1,7 @@
 [
     {
         "id": "card1",
-        "image": "content/images/image1.jpg",
+        "image": "/content/images/image1.jpg",
         "title": "Blur among 19 new acts added to Index",
         "date": "20.04.23",
         "tag": "Festival Life",
@@ -12,7 +12,7 @@
     },
     {
         "id": "card2",
-        "image": "content/images/pic1.jpg",
+        "image": "/content/images/pic1.jpg",
         "title": "It's time! Here is our full festival program",
         "date": "20.03.05",
         "tag": "Footprints",
@@ -23,7 +23,7 @@
     },
     {
         "id": "card3",
-        "image": "content/images/pic2.jpg",
+        "image": "/content/images/pic2.jpg",
         "title": "Become a festival volunteer this summer",
         "date": "20.05.02",
         "tag": "Experiences",

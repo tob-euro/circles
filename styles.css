@@ -18,34 +18,35 @@
         --background-color: #222222;
         --overlay-text-color: rgba(255, 255, 255, 0.8);
         --tag-color: rgba(255, 255, 255, 0.6);
-        --box-shadow: 0 4px 8px rgba(255, 255, 255, 0.1);
+        --box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         --border-color: rgba(255, 255, 255, 0.2);
         --close-btn-color: rgba(255, 255, 255, 0.85);
     }
 }
+
 /* Fonts */
 @font-face {
     font-family: 'Suisse Intl';
     src: url('../content/fonts/SuisseIntl-Light.ttf') format('truetype');
     font-weight: 300;
-  }
+}
 
 @font-face {
     font-family: 'Suisse Intl';
     src: url('../content/fonts/SuisseIntl-Regular.ttf') format('truetype');
     font-weight: 400;
-  }
+}
   
 @font-face {
     font-family: 'Suisse Intl';
     src: url('../content/fonts/SuisseIntl-SemiBold.ttf') format('truetype');
     font-weight: 600;
-    }
+}
 
 @font-face {
-font-family: 'Suisse Intl';
-src: url('../content/fonts/SuisseIntl-Bold.ttf') format('truetype');
-font-weight: 700;
+    font-family: 'Suisse Intl';
+    src: url('../content/fonts/SuisseIntl-Bold.ttf') format('truetype');
+    font-weight: 700;
 }
 
 body, html {
@@ -54,30 +55,13 @@ body, html {
     font-family: 'Suisse Intl', Arial, sans-serif;
     background-color: var(--background-color);
     overflow: hidden;
-    width: 50%;
-    height: 50%;
-}
+    background-image: radial-gradient(circle, #000000 1px, rgba(0, 0, 0, 0) 1px);
 
-.frame {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    overflow: hidden; /* Ensure no overflow */
 }
-
-canvas#matterCanvas {
-    display: block; /* Remove any inline padding or margin */
-    width: 50%;
-    height: 50%;
-    background: #f0f0f0; /* Optional: set a background color */
-}
-
 ::selection {
     color: var(--text-color);
     background: tomato;
-  }
+}
 
 ::-webkit-scrollbar {
     width: 0;
@@ -85,24 +69,32 @@ canvas#matterCanvas {
 }
 
 .navigation {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-gap: 10px;
     position: fixed;
     left: 0;
     right: 0;
-    margin: 10px;
+    top: 0;
     z-index: 1;
-    gap: 10px;
+    padding: 10px 15px;
+    height: auto; /* Default height */
+    transition: height 0.5s ease-in-out;
 }
 
-.menu, .filters, .info-menu, .news-tab, .card-bg, .card, .buttons button, .card-bg   {
+.navigation.expanded {
+    height: calc(100% - 20px); /* Height when news-tab is open */
+}
+
+
+/* Existing CSS */
+.menu, .filters, .info-menu, .news-tab, .card-bg, .card, .buttons button, .card-bg {
     background-color: var(--menu-color);
     backdrop-filter: blur(30px);
     -webkit-backdrop-filter: blur(30px);
     border-radius: 30px;
     box-shadow: var(--box-shadow);
-    padding: 10px 20px;
-    overflow: hidden;
+    padding: 15px 20px;
     color: var(--text-color);
 }
 
@@ -119,7 +111,7 @@ canvas#matterCanvas {
     color: var(--text-color);
     font-size: 36px;
     font-weight: 700;
-    transition: color 0.2s ease;;
+    transition: color 0.2s ease;
 }
 
 .menu nav ul li a:hover, .menu nav ul li a.active {
@@ -141,22 +133,52 @@ canvas#matterCanvas {
     font-size: 15px;
     font-weight: 300;
     color: var(--tag-color);
+    white-space: nowrap;
 }
 
 .tags:not(:last-child) {
     margin-bottom: 10px;
-    padding-bottom: 5px;
     border-bottom: 1px solid rgb(120, 120, 120);
 }
 
-.tag {
-    transition: color 0.3s;
-}
-
-.tag:hover,  .tag.active{
+.tag:hover, .tag.active {
     font-weight: 400;
     color: tomato;
 }
+
+/* New CSS for timeline elements */
+.timeline-item {
+    display: flex;
+    align-items: center;
+    flex: 1;
+}
+
+.timeline-date {
+    margin-right: 5px;
+}
+
+.timeline-bar {
+    display: grid;
+    grid-template-columns: repeat(24, 1fr);
+    width: 100%;
+    height: 10px;
+}
+
+.timeline-bar .tick {
+    background-color: var(--tag-color);
+    border-radius: 30px;
+}
+
+.timeline-bar .tick {
+    width: 5px;
+    background-color: var(--tag-color);
+    border-radius: 30px;
+}
+
+.timeline-bar .tick.active {
+    background-color: tomato;
+}
+
 /* Overlay Container */
 #overlay-container {
     position: absolute;
@@ -170,8 +192,7 @@ canvas#matterCanvas {
 .overlay-text {
     position: absolute;
     color: var(--overlay-text-color);
-    font-size: 18px;
-    font-weight: 700;
+    font-weight: 600;
     text-align: center;
     display: flex;
     justify-content: center;
@@ -181,10 +202,9 @@ canvas#matterCanvas {
 }
 
 .superscript {
-    font-weight: 400;
-    font-size: 12px;
+    font-weight: 300;
     vertical-align: super;
-    margin-left: 3px;
+    margin-left: 2px;
 }
 
 .info-menu {
@@ -198,7 +218,7 @@ canvas#matterCanvas {
 }
 
 /* Close button for info-menu */
-.info-menu .close-btn {
+.info-menu .close-btn, .news-tab .close-btn {
     position: absolute;
     top: 10px;
     right: 10px;
@@ -217,18 +237,14 @@ canvas#matterCanvas {
     transition: transform 0.2s ease; /* Add a slight transition for hover effect */
 }
 
-.info-menu .close-btn:hover {
+.info-menu .close-btn:hover, .news-tab .close-btn:hover {
     transform: scale(1.1); /* Slightly enlarge on hover */
 }
 
-.info-menu .close-btn:before {
+.info-menu .close-btn:before, .news-tab .close-btn:before {
     content: '\00d7'; /* Unicode for multiplication sign (×) */
     font-size: 30px; /* Adjust the size as needed */
     font-weight: 100; /* Light weight for a minimalist look */
-}
-
-.clicked-circle-content {
-    opacity: 0;
 }
 
 .circle[style*="display: none"] {
@@ -252,15 +268,37 @@ canvas#matterCanvas {
     transform-origin: center center;
 }
 
+.circle-hover {
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+
 /* News Tab */
 .news-tab {
+    background-color: var(--menu-color);
     overflow-y: auto;
-    height: 640px;
+    transform: translateY(100%);
+    transition: transform 0.5s ease-in-out, opacity 0.5s ease-in-out;
+    visibility: hidden;
+    bottom: 0; /* Align the bottom edge */
+}
+
+.news-tab.show {
+    transform: translateY(0);
+    visibility: visible;
+    display: block; /* Show in the layout when visible */
+    z-index: 2; /* Ensure it is above other elements */
+}
+
+.news-tab.hide {
+    transform: translateY(100%);
+    visibility: hidden;
 }
 
 .news-tab h1 {
     font-size: 2.5em;
     color: var(--text-color);
+    margin-top: 20px;
 }
 
 .card {
@@ -304,7 +342,7 @@ canvas#matterCanvas {
     display: flex;
     font-weight: 300;
     justify-content: space-between;
-    color: var(--text-color);
+    color: var(--tag-color);
 }
 
 .card-bg .card-content {
@@ -323,7 +361,6 @@ canvas#matterCanvas {
     position: absolute;
     box-sizing: border-box; 
     bottom: 0px;
-    left: 0;
     width: 100%;
     padding: 10px 15px;
 }
