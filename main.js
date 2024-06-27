@@ -1,4 +1,3 @@
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // world.js
 const { Engine, Render, Runner, Bodies, Composite, MouseConstraint, Mouse, World, Events, Vector, Common, Body, Composites, Bounds } = Matter;
 Matter.use('matter-attractors'); // Enable the matter-attractors plugin
@@ -63,7 +62,6 @@ function createWalls() {
 createWalls();
 
 // Handle window resize
-// Handle window resize
 window.addEventListener('resize', () => {
     const newWidth = window.innerWidth;
     const newHeight = window.innerHeight;
@@ -92,125 +90,207 @@ window.addEventListener('resize', () => {
         updateTextPosition(circle);
     });
 });
+let initialDistance = null;
+let isPinching = false;
+
+// Event listeners for touch events to handle pinch zoom
+canvas.addEventListener('gesturestart', (event) => {
+    event.preventDefault();
+    initialDistance = event.scale;
+    isPinching = true;
+}, { passive: false });
+
+canvas.addEventListener('gesturechange', (event) => {
+    if (isPinching) {
+        event.preventDefault();
+        const scaleFactor = initialDistance / event.scale; // Invert the scaleFactor
+
+        boundsScaleTarget *= scaleFactor;
+        boundsScaleTarget = Math.max(0.3, Math.min(boundsScaleTarget, 1)); // Ensure boundsScaleTarget does not exceed 1
+
+        initialDistance = event.scale;
+
+        // Get the mouse position
+        const mouse = mouseConstraint.mouse;
+        const mousePosition = { x: mouse.absolute.x, y: mouse.absolute.y };
+
+        // Calculate the new bounds to reflect the new scale
+        const previousBounds = { ...render.bounds };
+        const scaleFactorDelta = (boundsScaleTarget - boundsScale.x) * 0.075;
+        boundsScale.x += scaleFactorDelta;
+        boundsScale.y += scaleFactorDelta;
+
+        // Calculate the new bounds based on the mouse position
+        const dx = (mousePosition.x - previousBounds.min.x) / (previousBounds.max.x - previousBounds.min.x);
+        const dy = (mousePosition.y - previousBounds.min.y) / (previousBounds.max.y - previousBounds.min.y);
+
+        render.bounds.min.x = mousePosition.x - dx * (render.bounds.max.x - render.bounds.min.x);
+        render.bounds.min.y = mousePosition.y - dy * (render.bounds.max.y - render.bounds.min.y);
+        render.bounds.max.x = render.bounds.min.x + render.options.width * boundsScale.x;
+        render.bounds.max.y = render.bounds.min.y + render.options.height * boundsScale.y;
+
+        // Translate the bounds so zoom is centered on the mouse position
+        const translate = {
+            x: mousePosition.x - (previousBounds.min.x + (previousBounds.max.x - previousBounds.min.x) * dx),
+            y: mousePosition.y - (previousBounds.min.y + (previousBounds.max.y - previousBounds.min.y) * dy)
+        };
+
+        Bounds.translate(render.bounds, translate);
+
+        // Clamp the bounds to ensure they do not exceed the wall boundaries
+        const wallBuffer = 50; // Buffer to ensure we stay within the walls
+        if (render.bounds.min.x < -wallBuffer) {
+            const translateX = -wallBuffer - render.bounds.min.x;
+            render.bounds.min.x += translateX;
+            render.bounds.max.x += translateX;
+        }
+        if (render.bounds.min.y < -wallBuffer) {
+            const translateY = -wallBuffer - render.bounds.min.y;
+            render.bounds.min.y += translateY;
+            render.bounds.max.y += translateY;
+        }
+        if (render.bounds.max.x > window.innerWidth + wallBuffer) {
+            const translateX = window.innerWidth + wallBuffer - render.bounds.max.x;
+            render.bounds.min.x += translateX;
+            render.bounds.max.x += translateX;
+        }
+        if (render.bounds.max.y > window.innerHeight + wallBuffer) {
+            const translateY = window.innerHeight + wallBuffer - render.bounds.max.y;
+            render.bounds.min.y += translateY;
+            render.bounds.max.y += translateY;
+        }
+
+        Mouse.setScale(mouse, boundsScale);
+        Mouse.setOffset(mouse, render.bounds.min);
+
+        allCircles.forEach(circle => {
+            updateTextPosition(circle);
+        });
+    }
+}, { passive: false });
+
+canvas.addEventListener('gestureend', (event) => {
+    event.preventDefault();
+    isPinching = false;
+    initialDistance = null;
+}, { passive: false });
 
 
-// Get the center of the viewport
+// Event listener for wheel events to handle panning
+canvas.addEventListener('wheel', (event) => {
+    if (isPinching) return; // Do nothing if currently pinching
+
+    const delta = {
+        x: event.deltaX,
+        y: event.deltaY
+    };
+
+    // Calculate the new bounds
+    let newMinX = render.bounds.min.x + delta.x;
+    let newMinY = render.bounds.min.y + delta.y;
+    let newMaxX = render.bounds.max.x + delta.x;
+    let newMaxY = render.bounds.max.y + delta.y;
+
+    // Clamp the new bounds to ensure they do not exceed the wall boundaries
+    const wallBuffer = 50; // Buffer to ensure we stay within the walls
+    if (newMinX < -wallBuffer) {
+        delta.x = -wallBuffer - render.bounds.min.x;
+        newMinX = -wallBuffer;
+        newMaxX = render.bounds.max.x + delta.x;
+    }
+    if (newMinY < -wallBuffer) {
+        delta.y = -wallBuffer - render.bounds.min.y;
+        newMinY = -wallBuffer;
+        newMaxY = render.bounds.max.y + delta.y;
+    }
+    if (newMaxX > window.innerWidth + wallBuffer) {
+        delta.x = window.innerWidth + wallBuffer - render.bounds.max.x;
+        newMinX = render.bounds.min.x + delta.x;
+        newMaxX = window.innerWidth + wallBuffer;
+    }
+    if (newMaxY > window.innerHeight + wallBuffer) {
+        delta.y = window.innerHeight + wallBuffer - render.bounds.max.y;
+        newMinY = render.bounds.min.y + delta.y;
+        newMaxY = window.innerHeight + wallBuffer;
+    }
+
+    Bounds.translate(render.bounds, {
+        x: delta.x,
+        y: delta.y
+    });
+
+    Mouse.setOffset(mouse, render.bounds.min);
+
+    // Prevent the default scroll behavior
+    event.preventDefault();
+}, { passive: false });
+
+// Initial setup for viewport and bounds
 const viewportCentre = {
     x: render.options.width * 0.5,
     y: render.options.height * 0.5
 };
 
-// Set render bounds
 render.bounds.min.x = 0;
 render.bounds.min.y = 0;
 render.bounds.max.x = window.innerWidth;
 render.bounds.max.y = window.innerHeight;
 
-// Keep track of current bounds scale (view zoom)
 let boundsScaleTarget = 1;
-let boundsScale = {x: 1, y: 1};
+let boundsScale = { x: 1, y: 1 };
 
-// Center the view at the start
-Render.lookAt(render, {min: { x: 0, y: 0 }, max: { x: window.innerWidth, y: window.innerHeight }});
+Render.lookAt(render, { min: { x: 0, y: 0 }, max: { x: window.innerWidth, y: window.innerHeight } });
 
-// Disable zooming and panning during info display
 Events.on(render, 'beforeRender', function() {
-    if (isZooming) return; // Disable zooming and panning when info menu is displayed
+    if (isZooming) return;
 
-    var mouse = mouseConstraint.mouse,
-        translate;
-
-    // Mouse wheel controls zoom
-    var scaleFactor = (mouse.wheelDelta * -0.035) || 0;
-    if (scaleFactor !== 0) {
-        if ((scaleFactor < 0 && boundsScale.x >= 0.6) || (scaleFactor > 0 && boundsScale.x <= 1.4)) {
-            boundsScaleTarget += scaleFactor;
-            // Cap the boundsScaleTarget to a maximum of 1
-            boundsScaleTarget = Math.min(boundsScaleTarget, 1);
-        }
-    }
-
-    // If scale has changed
-    if (Math.abs(boundsScale.x - boundsScaleTarget) > 0.01) {
-        // Smoothly tween scale factor
-        scaleFactor = (boundsScaleTarget - boundsScale.x) * 0.2;
-        boundsScale.x += scaleFactor;
-        boundsScale.y += scaleFactor;
-
-        // Scale the render bounds
-        render.bounds.max.x = render.bounds.min.x + render.options.width * boundsScale.x;
-        render.bounds.max.y = render.bounds.min.y + render.options.height * boundsScale.y;
-
-        // Translate so zoom is from center of view
-        translate = {
-            x: render.options.width * scaleFactor * -0.5,
-            y: render.options.height * scaleFactor * -0.5
-        };
-
-        Bounds.translate(render.bounds, translate);
-
-        // Update mouse
-        Mouse.setScale(mouse, boundsScale);
-        Mouse.setOffset(mouse, render.bounds.min);
-
-        // Update text positions to ensure they stay in place
-        allCircles.forEach(circle => {
-            updateTextPosition(circle);
-        });
-    }
+    const mouse = mouseConstraint.mouse;
 
     // Define different edge thresholds
-    var topThreshold = 100; // Distance from top edge to start panning
-    var bottomThreshold = 100; // Distance from bottom edge to start panning
-    var sideThreshold = 100; // Distance from side edges to start panning
+    const topThreshold = 100;
+    const bottomThreshold = 100;
+    const sideThreshold = 100;
 
-    // Get the height of the navigation menu
-    var navMenu = document.querySelector('.navigation');
-    var navHeight = navMenu ? navMenu.clientHeight : 0;
+    const navMenu = document.querySelector('.navigation');
+    const navHeight = navMenu ? navMenu.clientHeight : 0;
 
-    // Adjust boundaries to account for the navigation menu
-    var topBoundary = navHeight + topThreshold;
-    var bottomBoundary = render.options.height - bottomThreshold;
-    var leftBoundary = sideThreshold;
-    var rightBoundary = render.options.width - sideThreshold;
+    const topBoundary = navHeight + topThreshold;
+    const bottomBoundary = render.options.height - bottomThreshold;
+    const leftBoundary = sideThreshold;
+    const rightBoundary = render.options.width - sideThreshold;
 
-    // Determine translation direction and speed based on mouse proximity to edges
-    var direction = { x: 0, y: 0 };
-    var speed = 0;
+    let direction = { x: 0, y: 0 };
+    let speed = 0;
 
-    if (mouseConstraint.body) { // Only pan the canvas when dragging a circle
+    if (mouseConstraint.body) {
         if (mouse.absolute.x < leftBoundary) {
             direction.x = -1;
-            speed = 10 * (1 - (mouse.absolute.x / sideThreshold)); // Speed increases as mouse gets closer to the edge
+            speed = 10 * (1 - (mouse.absolute.x / sideThreshold));
         } else if (mouse.absolute.x > rightBoundary) {
             direction.x = 1;
-            speed = 10 * (1 - ((render.options.width - mouse.absolute.x) / sideThreshold)); // Speed increases as mouse gets closer to the edge
+            speed = 10 * (1 - ((render.options.width - mouse.absolute.x) / sideThreshold));
         }
 
         if (mouse.absolute.y < topBoundary) {
             direction.y = -1;
-            speed = 10 * (1 - ((mouse.absolute.y - navHeight) / topThreshold)); // Speed increases as mouse gets closer to the edge
+            speed = 10 * (1 - ((mouse.absolute.y - navHeight) / topThreshold));
         } else if (mouse.absolute.y > bottomBoundary) {
             direction.y = 1;
-            speed = 10 * (1 - ((render.options.height - mouse.absolute.y) / bottomThreshold)); // Speed increases as mouse gets closer to the edge
+            speed = 10 * (1 - ((render.options.height - mouse.absolute.y) / bottomThreshold));
         }
 
         if (direction.x !== 0 || direction.y !== 0) {
-            translate = Vector.mult(direction, speed);
+            const translate = Vector.mult(direction, speed);
 
-            // Prevent the view from moving out of bounds
             if (render.bounds.min.x + translate.x < 0) translate.x = 0 - render.bounds.min.x;
             if (render.bounds.min.y + translate.y < 0) translate.y = 0 - render.bounds.min.y;
             if (render.bounds.max.x + translate.x > window.innerWidth) translate.x = window.innerWidth - render.bounds.max.x;
             if (render.bounds.max.y + translate.y > window.innerHeight) translate.y = window.innerHeight - render.bounds.max.y;
 
-            // Move the view
             Bounds.translate(render.bounds, translate);
 
-            // We must update the mouse too
             Mouse.setOffset(mouse, render.bounds.min);
 
-            // Update text positions to ensure they stay in place
             allCircles.forEach(circle => {
                 updateTextPosition(circle);
             });
@@ -235,7 +315,6 @@ canvas.addEventListener('touchcancel', endDrag);
 
 function startDrag(event) {
     if (mouseConstraint.body) {
-        // If a circle is being dragged, do not start canvas dragging
         return;
     }
     isDraggingCanvas = true;
@@ -251,13 +330,11 @@ function drag(event) {
         y: currentMousePosition.y - lastMousePosition.y
     };
 
-    // Calculate the new bounds
     let newMinX = render.bounds.min.x - delta.x;
     let newMinY = render.bounds.min.y - delta.y;
     let newMaxX = render.bounds.max.x - delta.x;
     let newMaxY = render.bounds.max.y - delta.y;
 
-    // Ensure the new bounds do not go out of the visible canvas area
     if (newMinX < 0) {
         delta.x = render.bounds.min.x;
         newMinX = 0;
@@ -308,16 +385,16 @@ function getMousePosition(event) {
 }
 
 // Add mouse drag control
-var mouse = Mouse.create(render.canvas),
-    mouseConstraint = MouseConstraint.create(engine, {
-        mouse: mouse,
-        constraint: {
-            stiffness: 0.00075,
-            render: {
-                visible: false
-            }
+const mouse = Mouse.create(render.canvas);
+const mouseConstraint = MouseConstraint.create(engine, {
+    mouse: mouse,
+    constraint: {
+        stiffness: 0.00075,
+        render: {
+            visible: false
         }
-    });
+    }
+});
 Composite.add(world, mouseConstraint);
 
 // Stop dragging canvas when mouse is released or out of bounds
@@ -344,6 +421,7 @@ Events.on(mouseConstraint, 'enddrag', function(event) {
         isDraggingCanvas = false;
     }
 });
+
 
 
 
