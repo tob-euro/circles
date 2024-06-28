@@ -14,8 +14,8 @@
 @media (prefers-color-scheme: dark) {
     :root {
         --text-color: rgba(255, 255, 255, 0.85);
-        --menu-color: rgba(18, 18, 18, 0.5);
-        --background-color: #222222;
+        --menu-color: rgba(7, 7, 7, 0.5);
+        --background-color: #313131;
         --overlay-text-color: rgba(255, 255, 255, 0.8);
         --tag-color: rgba(255, 255, 255, 0.6);
         --box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
@@ -69,20 +69,17 @@ body, html {
 
 .navigation {
     display: grid;
-    grid-template-columns: 1fr;
     grid-gap: 10px;
     position: fixed;
-    left: 0;
     right: 0;
+    left: 0;
     top: 0;
     z-index: 1;
-    padding: 10px 15px;
-    height: auto; /* Default height */
-    transition: height 0.5s ease-in-out;
+    padding: 10px 20px;
 }
 
 .navigation.expanded {
-    height: calc(100% - 20px); /* Height when news-tab is open */
+    bottom: 0;
 }
 
 
@@ -108,7 +105,7 @@ body, html {
 .menu nav ul li a {
     text-decoration: none;
     color: var(--text-color);
-    font-size: 36px;
+    font-size: 32px;
     font-weight: 700;
     transition: color 0.2s ease;
 }
@@ -141,6 +138,7 @@ body, html {
 }
 
 .tag:hover, .tag.active {
+    transition: color 0.2s ease;
     font-weight: 400;
     color: tomato;
 }
@@ -207,17 +205,21 @@ body, html {
 }
 
 .info-menu {
-    width: 69%;
-    height: 580px;
-    align-self: flex-end;
+    overflow-y: auto;
+    width: 50%;
+    transform: translateY(100%);
+    transition: transform 0.3s ease-in-out; /* Ensure smooth sliding */
 }
 
 .info-menu.show {
-    display: block;
+    display:block;
+    transform: translateY(0);
+    visibility: visible;
+    opacity: 1;
 }
 
 /* Close button for info-menu */
-.info-menu .close-btn, .news-tab .close-btn {
+.close-btn {
     position: absolute;
     top: 10px;
     right: 10px;
@@ -226,21 +228,23 @@ body, html {
     cursor: pointer;
     outline: none; /* Remove the default focus outline */
     transition: transform 0.2s ease; /* Add a slight transition for hover effect */
+    color: var(--close-btn-color);
 }
 
-.info-menu .close-btn:hover, .news-tab .close-btn:hover {
+.close-btn:hover {
     transform: scale(1.1); /* Slightly enlarge on hover */
 }
 
-.info-menu .close-btn:before, .news-tab .close-btn:before {
+.close-btn:before {
     content: '\00d7'; /* Unicode for multiplication sign (×) */
-    font-size: 30px; /* Adjust the size as needed */
-    font-weight: 100; /* Light weight for a minimalist look */
+    font-size: 40px;
+    font-weight: 100;
 }
 
 .hidden {
     display: none;
 }   
+
 
 /* News Tab */
 .news-tab {
@@ -256,7 +260,6 @@ body, html {
     transform: translateY(0);
     visibility: visible;
     display: block; /* Show in the layout when visible */
-    z-index: 2; /* Ensure it is above other elements */
 }
 
 .news-tab.hide {

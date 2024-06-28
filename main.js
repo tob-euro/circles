@@ -1,15 +1,20 @@
-// world.js
+// Import necessary Matter.js modules
 const { Engine, Render, Runner, Bodies, Composite, MouseConstraint, Mouse, World, Events, Vector, Common, Body, Composites, Bounds } = Matter;
-Matter.use('matter-attractors'); // Enable the matter-attractors plugin
 
-const allCircles = [];
+// Enable the matter-attractors plugin
+Matter.use('matter-attractors');
 
+// Get the canvas element
 const canvas = document.getElementById('matterCanvas');
 
+// Create the Matter.js engine
 const engine = Engine.create();
 const world = engine.world;
+
+// Disable gravity in the Y direction
 engine.gravity.y = false;
 
+// Create the renderer
 const render = Render.create({
     canvas: canvas,
     engine: engine,
@@ -18,49 +23,35 @@ const render = Render.create({
         height: window.innerHeight,
         background: "transparent",
         wireframes: false,
-        pixelRatio: window.devicePixelRatio // This ensures the correct pixel ratio
+        pixelRatio: window.devicePixelRatio
     }
 });
 
+// Run the renderer
 Render.run(render);
 
+const allCircles = [];
 let walls = [];
+let isPinching = false;
+let initialDistance = null;
+let boundsScaleTarget = 1;
+let boundsScale = { x: 1, y: 1 };
 
 // Function to create walls
 function createWalls() {
-    // Remove existing walls
     Composite.remove(world, walls);
-    
-    // Create new walls
     const width = window.innerWidth;
     const height = window.innerHeight;
 
     walls = [
-        Bodies.rectangle(width / 2, -25, width, 50, { 
-            isStatic: true,
-            render: { visible: false } 
-        }), // top
-        Bodies.rectangle(width / 2, height + 25, width, 50, { 
-            isStatic: true,
-            render: { visible: false } 
-        }), // bottom
-        Bodies.rectangle(-25, height / 2, 50, height, { 
-            isStatic: true,
-            render: { visible: false } 
-        }), // left
-        Bodies.rectangle(width + 25, height / 2, 50, height, { 
-            isStatic: true,
-            render: { visible: false } 
-        }) // right
+        Bodies.rectangle(width / 2, -25, width, 50, { isStatic: true, render: { visible: false } }), // Top wall
+        Bodies.rectangle(width / 2, height + 25, width, 50, { isStatic: true, render: { visible: false } }), // Bottom wall
+        Bodies.rectangle(-25, height / 2, 50, height, { isStatic: true, render: { visible: false } }), // Left wall
+        Bodies.rectangle(width + 25, height / 2, 50, height, { isStatic: true, render: { visible: false } }) // Right wall
     ];
 
-    // Add new walls to the world
     Composite.add(world, walls);
 }
-
-// Initial walls creation
-createWalls();
-
 // Handle window resize
 window.addEventListener('resize', () => {
     const newWidth = window.innerWidth;
@@ -90,8 +81,6 @@ window.addEventListener('resize', () => {
         updateTextPosition(circle);
     });
 });
-let initialDistance = null;
-let isPinching = false;
 
 // Event listeners for touch events to handle pinch zoom
 canvas.addEventListener('gesturestart', (event) => {
@@ -110,17 +99,13 @@ canvas.addEventListener('gesturechange', (event) => {
 
         initialDistance = event.scale;
 
-        // Get the mouse position
         const mouse = mouseConstraint.mouse;
         const mousePosition = { x: mouse.absolute.x, y: mouse.absolute.y };
-
-        // Calculate the new bounds to reflect the new scale
         const previousBounds = { ...render.bounds };
         const scaleFactorDelta = (boundsScaleTarget - boundsScale.x) * 0.075;
         boundsScale.x += scaleFactorDelta;
         boundsScale.y += scaleFactorDelta;
 
-        // Calculate the new bounds based on the mouse position
         const dx = (mousePosition.x - previousBounds.min.x) / (previousBounds.max.x - previousBounds.min.x);
         const dy = (mousePosition.y - previousBounds.min.y) / (previousBounds.max.y - previousBounds.min.y);
 
@@ -129,7 +114,6 @@ canvas.addEventListener('gesturechange', (event) => {
         render.bounds.max.x = render.bounds.min.x + render.options.width * boundsScale.x;
         render.bounds.max.y = render.bounds.min.y + render.options.height * boundsScale.y;
 
-        // Translate the bounds so zoom is centered on the mouse position
         const translate = {
             x: mousePosition.x - (previousBounds.min.x + (previousBounds.max.x - previousBounds.min.x) * dx),
             y: mousePosition.y - (previousBounds.min.y + (previousBounds.max.y - previousBounds.min.y) * dy)
@@ -137,7 +121,6 @@ canvas.addEventListener('gesturechange', (event) => {
 
         Bounds.translate(render.bounds, translate);
 
-        // Clamp the bounds to ensure they do not exceed the wall boundaries
         const wallBuffer = 50; // Buffer to ensure we stay within the walls
         if (render.bounds.min.x < -wallBuffer) {
             const translateX = -wallBuffer - render.bounds.min.x;
@@ -180,18 +163,12 @@ canvas.addEventListener('gestureend', (event) => {
 canvas.addEventListener('wheel', (event) => {
     if (isPinching) return; // Do nothing if currently pinching
 
-    const delta = {
-        x: event.deltaX,
-        y: event.deltaY
-    };
-
-    // Calculate the new bounds
+    const delta = { x: event.deltaX, y: event.deltaY };
     let newMinX = render.bounds.min.x + delta.x;
     let newMinY = render.bounds.min.y + delta.y;
     let newMaxX = render.bounds.max.x + delta.x;
     let newMaxY = render.bounds.max.y + delta.y;
 
-    // Clamp the new bounds to ensure they do not exceed the wall boundaries
     const wallBuffer = 50; // Buffer to ensure we stay within the walls
     if (newMinX < -wallBuffer) {
         delta.x = -wallBuffer - render.bounds.min.x;
@@ -214,50 +191,26 @@ canvas.addEventListener('wheel', (event) => {
         newMaxY = window.innerHeight + wallBuffer;
     }
 
-    Bounds.translate(render.bounds, {
-        x: delta.x,
-        y: delta.y
-    });
-
+    Bounds.translate(render.bounds, { x: delta.x, y: delta.y });
     Mouse.setOffset(mouse, render.bounds.min);
 
-    // Prevent the default scroll behavior
     event.preventDefault();
 }, { passive: false });
 
-// Initial setup for viewport and bounds
-const viewportCentre = {
-    x: render.options.width * 0.5,
-    y: render.options.height * 0.5
-};
-
-render.bounds.min.x = 0;
-render.bounds.min.y = 0;
-render.bounds.max.x = window.innerWidth;
-render.bounds.max.y = window.innerHeight;
-
-let boundsScaleTarget = 1;
-let boundsScale = { x: 1, y: 1 };
-
+// Center the view initially
 Render.lookAt(render, { min: { x: 0, y: 0 }, max: { x: window.innerWidth, y: window.innerHeight } });
 
-Events.on(render, 'beforeRender', function() {
-    if (isZooming) return;
-
+Events.on(render, 'beforeRender', () => {
     const mouse = mouseConstraint.mouse;
 
-    // Define different edge thresholds
-    const topThreshold = 100;
-    const bottomThreshold = 100;
-    const sideThreshold = 100;
-
+    // Define edge thresholds
+    const thresholds = { top: 100, bottom: 100, side: 100 };
     const navMenu = document.querySelector('.navigation');
     const navHeight = navMenu ? navMenu.clientHeight : 0;
-
-    const topBoundary = navHeight + topThreshold;
-    const bottomBoundary = render.options.height - bottomThreshold;
-    const leftBoundary = sideThreshold;
-    const rightBoundary = render.options.width - sideThreshold;
+    const topBoundary = navHeight + thresholds.top;
+    const bottomBoundary = render.options.height - thresholds.bottom;
+    const leftBoundary = thresholds.side;
+    const rightBoundary = render.options.width - thresholds.side;
 
     let direction = { x: 0, y: 0 };
     let speed = 0;
@@ -265,30 +218,28 @@ Events.on(render, 'beforeRender', function() {
     if (mouseConstraint.body) {
         if (mouse.absolute.x < leftBoundary) {
             direction.x = -1;
-            speed = 10 * (1 - (mouse.absolute.x / sideThreshold));
+            speed = 10 * (1 - (mouse.absolute.x / thresholds.side));
         } else if (mouse.absolute.x > rightBoundary) {
             direction.x = 1;
-            speed = 10 * (1 - ((render.options.width - mouse.absolute.x) / sideThreshold));
+            speed = 10 * (1 - ((render.options.width - mouse.absolute.x) / thresholds.side));
         }
 
         if (mouse.absolute.y < topBoundary) {
             direction.y = -1;
-            speed = 10 * (1 - ((mouse.absolute.y - navHeight) / topThreshold));
+            speed = 10 * (1 - ((mouse.absolute.y - navHeight) / thresholds.top));
         } else if (mouse.absolute.y > bottomBoundary) {
             direction.y = 1;
-            speed = 10 * (1 - ((render.options.height - mouse.absolute.y) / bottomThreshold));
+            speed = 10 * (1 - ((render.options.height - mouse.absolute.y) / thresholds.bottom));
         }
 
         if (direction.x !== 0 || direction.y !== 0) {
             const translate = Vector.mult(direction, speed);
-
             if (render.bounds.min.x + translate.x < 0) translate.x = 0 - render.bounds.min.x;
             if (render.bounds.min.y + translate.y < 0) translate.y = 0 - render.bounds.min.y;
             if (render.bounds.max.x + translate.x > window.innerWidth) translate.x = window.innerWidth - render.bounds.max.x;
             if (render.bounds.max.y + translate.y > window.innerHeight) translate.y = window.innerHeight - render.bounds.max.y;
 
             Bounds.translate(render.bounds, translate);
-
             Mouse.setOffset(mouse, render.bounds.min);
 
             allCircles.forEach(circle => {
@@ -298,135 +249,20 @@ Events.on(render, 'beforeRender', function() {
     }
 });
 
-// Variables to track dragging state
-let isDraggingCanvas = false;
-let lastMousePosition = null;
-
-// Event listeners for mouse and touch drag events
-canvas.addEventListener('mousedown', startDrag);
-window.addEventListener('mousemove', drag);
-window.addEventListener('mouseup', endDrag);
-canvas.addEventListener('mouseout', endDrag);
-
-canvas.addEventListener('touchstart', startDrag, { passive: true });
-canvas.addEventListener('touchmove', drag, { passive: true });
-canvas.addEventListener('touchend', endDrag);
-canvas.addEventListener('touchcancel', endDrag);
-
-function startDrag(event) {
-    if (mouseConstraint.body) {
-        return;
-    }
-    isDraggingCanvas = true;
-    lastMousePosition = getMousePosition(event);
-}
-
-function drag(event) {
-    if (!isDraggingCanvas) return;
-
-    const currentMousePosition = getMousePosition(event);
-    const delta = {
-        x: currentMousePosition.x - lastMousePosition.x,
-        y: currentMousePosition.y - lastMousePosition.y
-    };
-
-    let newMinX = render.bounds.min.x - delta.x;
-    let newMinY = render.bounds.min.y - delta.y;
-    let newMaxX = render.bounds.max.x - delta.x;
-    let newMaxY = render.bounds.max.y - delta.y;
-
-    if (newMinX < 0) {
-        delta.x = render.bounds.min.x;
-        newMinX = 0;
-        newMaxX = render.bounds.max.x - delta.x;
-    }
-    if (newMinY < 0) {
-        delta.y = render.bounds.min.y;
-        newMinY = 0;
-        newMaxY = render.bounds.max.y - delta.y;
-    }
-    if (newMaxX > window.innerWidth) {
-        delta.x = render.bounds.max.x - window.innerWidth;
-        newMinX = render.bounds.min.x - delta.x;
-        newMaxX = window.innerWidth;
-    }
-    if (newMaxY > window.innerHeight) {
-        delta.y = render.bounds.max.y - window.innerHeight;
-        newMinY = render.bounds.min.y - delta.y;
-        newMaxY = window.innerHeight;
-    }
-
-    Bounds.translate(render.bounds, {
-        x: -delta.x,
-        y: -delta.y
-    });
-
-    Mouse.setOffset(mouse, render.bounds.min);
-
-    lastMousePosition = currentMousePosition;
-}
-
-function endDrag() {
-    isDraggingCanvas = false;
-}
-
-function getMousePosition(event) {
-    if (event.touches) {
-        return {
-            x: event.touches[0].clientX,
-            y: event.touches[0].clientY
-        };
-    } else {
-        return {
-            x: event.clientX,
-            y: event.clientY
-        };
-    }
-}
-
 // Add mouse drag control
 const mouse = Mouse.create(render.canvas);
 const mouseConstraint = MouseConstraint.create(engine, {
     mouse: mouse,
     constraint: {
         stiffness: 0.00075,
-        render: {
-            visible: false
-        }
+        render: { visible: false }
     }
 });
 Composite.add(world, mouseConstraint);
 
-// Stop dragging canvas when mouse is released or out of bounds
-Events.on(mouseConstraint, 'enddrag', function() {
-    endDrag();
-});
-
-// Additional checks to prevent canvas drag if dragging circles
-Events.on(mouseConstraint, 'mousedown', function(event) {
-    if (event.body) {
-        isDraggingCanvas = false;
-    }
-});
-
-// Update isDraggingCanvas state based on mouseConstraint events
-Events.on(mouseConstraint, 'startdrag', function(event) {
-    if (event.body) {
-        isDraggingCanvas = false;
-    }
-});
-
-Events.on(mouseConstraint, 'enddrag', function(event) {
-    if (event.body) {
-        isDraggingCanvas = false;
-    }
-});
-
-
-
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // filters.js
+
 let previousActiveTags = [];
 
 // Function to set previousActiveTags
@@ -447,6 +283,7 @@ const filterDefinitions = {
     }
 };
 
+// Function to generate HTML for filters
 function generateFiltersHTML(filters) {
     const filtersContainer = document.querySelector('.filters');
     filtersContainer.innerHTML = ''; // Clear existing content
@@ -468,18 +305,18 @@ function generateFiltersHTML(filters) {
                 const dateElement = document.createElement('span');
                 dateElement.className = 'timeline-date tag';
                 dateElement.textContent = tag;
-                dateElement.setAttribute('data-category', 'timeline'); // Set data-category
+                dateElement.setAttribute('data-category', 'timeline');
 
                 const timelineBar = document.createElement('div');
                 timelineBar.className = 'timeline-bar';
-                timelineBar.setAttribute('data-date', tag); // Add data-date attribute
+                timelineBar.setAttribute('data-date', tag);
 
                 // Create 24 ticks for the timeline bar
                 for (let i = 0; i < 24; i++) {
                     const tick = document.createElement('div');
                     tick.className = 'tick tag';
-                    tick.setAttribute('data-time', `${((i * 60) % 3600) / 60}`); // Add data-time attribute
-                    tick.setAttribute('data-category', 'tick'); // Set data-category
+                    tick.setAttribute('data-time', `${((i * 60) % 3600) / 60}`);
+                    tick.setAttribute('data-category', 'tick');
                     timelineBar.appendChild(tick);
                 }
 
@@ -502,12 +339,12 @@ function generateFiltersHTML(filters) {
     }
 }
 
-
-
+// Variables to handle tick selection
 let selectedTicks = [];
 let startTick = null;
 let isSelecting = false;
 
+// Mouse event handlers for tick selection
 function handleMouseDown(event) {
     const timelineBar = event.target.closest('.timeline-bar');
     if (!timelineBar || !event.target.classList.contains('tick')) return;
@@ -519,14 +356,13 @@ function handleMouseDown(event) {
     if (startTick.classList.contains('active')) {
         startTick.classList.remove('active');
         selectedTicks = selectedTicks.filter(tick => tick !== startTick);
-        isSelecting = false;  // Stop selecting if it's just a click to toggle off
+        isSelecting = false; // Stop selecting if it's just a click to toggle off
     } else {
         startTick.classList.add('active');
         selectedTicks.push(startTick);
     }
 
-    // Prevent any default behavior that could cause the click event to fire twice
-    event.preventDefault();
+    event.preventDefault(); // Prevent any default behavior
     applyTickStyles();
 }
 
@@ -573,29 +409,24 @@ document.addEventListener('mousedown', handleMouseDown);
 document.addEventListener('mousemove', handleMouseMove);
 document.addEventListener('mouseup', handleMouseUp);
 
+// Apply styles to ticks based on their active state
 function applyTickStyles() {
     const ticks = document.querySelectorAll('.tick');
     ticks.forEach(tick => {
-        if (tick.classList.contains('active')) {
-            tick.style.backgroundColor = 'tomato';
-        } else {
-            tick.style.backgroundColor = 'var(--tag-color)';
-        }
+        tick.style.backgroundColor = tick.classList.contains('active') ? 'tomato' : 'var(--tag-color)';
     });
 }
 
+// Filter the timeline based on selected ticks
 function filterTimeline() {
-    // Ensure selectedTicks has elements
     if (selectedTicks.length === 0) {
         console.error('No ticks selected');
         return;
     }
 
-    // Get the start and end times from the selected ticks
     const startTick = selectedTicks[0];
     const endTick = selectedTicks[selectedTicks.length - 1];
 
-    // Ensure startTick and endTick are defined
     if (!startTick || !endTick) {
         console.error('Start or end tick is undefined');
         return;
@@ -604,37 +435,40 @@ function filterTimeline() {
     const startTime = parseInt(startTick.getAttribute('data-time'), 10);
     const endTime = parseInt(endTick.getAttribute('data-time'), 10);
 
-    // Filter the timeline based on the start and end times
     const ticks = Array.from(document.querySelectorAll('.tick'));
     const activeTicks = ticks.filter(tick => {
         const tickTime = parseInt(tick.getAttribute('data-time'), 10);
         return tickTime >= startTime && tickTime <= endTime;
     });
 
-    // Mark filtered ticks as active
     ticks.forEach(tick => {
         const tickTime = parseInt(tick.getAttribute('data-time'), 10);
-        if (tickTime >= startTime && tickTime <= endTime) {
-            tick.classList.add('active');
-        } else {
-            tick.classList.remove('active');
-        }
+        tick.classList.toggle('active', tickTime >= startTime && tickTime <= endTime);
     });
 
-    // Apply styles to the ticks
     applyTickStyles();
-
-    // Do something with the active ticks...
     console.log('Active ticks:', activeTicks);
-
-    // Filter circles based on active ticks
     applyFilters();
 }
 
-
+// Update filters based on the selected tab
 function updateFilters(tab) {
     const filters = filterDefinitions[tab];
     generateFiltersHTML(filters);
+}
+
+// Function to activate tags of the clicked circle
+function activateTags(tags) {
+    // Deactivate all tags first
+    document.querySelectorAll('.tag').forEach(tag => tag.classList.remove('active'));
+
+    // Activate the tags passed in the argument
+    tags.forEach(tag => {
+        const tagElement = document.querySelector(`.tag[data-tag="${tag}"]`);
+        if (tagElement) {
+            tagElement.classList.add('active');
+        }
+    });
 }
 
 // Function to initialize the page
@@ -694,6 +528,7 @@ function initializePage() {
         });
 }
 
+// Initialize the page when the DOM content is loaded
 document.addEventListener('DOMContentLoaded', function() {
     initializePage();
     document.getElementById('news-link').addEventListener('click', function() {
@@ -722,7 +557,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-
+// Show the news tab
 function showNewsTab() {
     const newsTab = document.getElementById('news-tab');
     const navigation = document.querySelector('.navigation');
@@ -734,6 +569,7 @@ function showNewsTab() {
     }); // Small delay to ensure the display change takes effect
 }
 
+// Hide the news tab
 function hideNewsTab() {
     const newsTab = document.getElementById('news-tab');
     const navigation = document.querySelector('.navigation');
@@ -745,14 +581,11 @@ function hideNewsTab() {
     }, 500); // Match the transition duration in CSS
 }
 
+// Set the active link in the navigation menu
 function setActiveLink(activeId) {
     const menuLinks = document.querySelectorAll('.menu nav ul li a');
     menuLinks.forEach(link => {
-        if (link.id === activeId) {
-            link.classList.add('active');
-        } else {
-            link.classList.remove('active');
-        }
+        link.classList.toggle('active', link.id === activeId);
     });
 }
 
@@ -762,18 +595,10 @@ function activateTag(tagElement) {
     const category = tagElement.getAttribute('data-category');
 
     if (category === 'timeline' || category === 'tick') {
-        // Toggle its active state
-        if (!isActive) {
-            tagElement.classList.add('active');
-        } else {
-            tagElement.classList.remove('active');
-        }
+        tagElement.classList.toggle('active');
     } else {
-        // Deactivate other tags in the same category
         const otherTags = document.querySelectorAll(`.tag[data-category="${category}"]`);
         otherTags.forEach(tag => tag.classList.remove('active'));
-
-        // Toggle the clicked tag if it was not active
         if (!isActive) {
             tagElement.classList.add('active');
         }
@@ -781,48 +606,36 @@ function activateTag(tagElement) {
     applyFilters(); // Apply filters after activating the tag
 }
 
-
-
+// Apply filters based on active tags
 function applyFilters() {
     const activeTags = Array.from(document.querySelectorAll('.tag.active')).map(tag => tag.getAttribute('data-tag'));
 
-    if (activeTags.length === 0) {
-        // Show all circles if no tags are active
-        allCircles.forEach(circle => {
+    allCircles.forEach(circle => {
+        const isActive = activeTags.every(tag => circle.tags.includes(tag));
+        if (isActive) {
             if (!Composite.allBodies(world).includes(circle)) {
                 Composite.add(world, circle);
                 Body.set(circle, { isStatic: false });
                 animateBodyAppearance(circle);
             }
-        });
-    } else {
-        allCircles.forEach(circle => {
-            const isActive = activeTags.every(tag => circle.tags.includes(tag));
-            if (isActive) {
-                if (!Composite.allBodies(world).includes(circle)) {
-                    Composite.add(world, circle);
-                    Body.set(circle, { isStatic: false });
-                    animateBodyAppearance(circle);
-                }
-            } else {
+        } else {
+            if (Composite.allBodies(world).includes(circle)) {
                 animateBodyDisappearance(circle);
             }
-        });
-    }
+        }
+    });
 }
 
+// Restore previously active tags
 function restorePreviousActiveTags() {
     const allTags = document.querySelectorAll('.tag');
     allTags.forEach(tag => {
-        tag.classList.remove('active');
-        if (previousActiveTags.includes(tag.getAttribute('data-tag'))) {
-            tag.classList.add('active');
-        }
+        tag.classList.toggle('active', previousActiveTags.includes(tag.getAttribute('data-tag')));
     });
     applyFilters();
 }
 
-// Event listener for filters
+// Initialize filters on DOM content loaded
 document.addEventListener('DOMContentLoaded', () => {
     const path = window.location.pathname;
     const currentPage = path.substring(path.lastIndexOf('/') + 1);
@@ -840,6 +653,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
+
 
 
 
@@ -1091,7 +905,7 @@ Events.on(engine, 'afterUpdate', function() {
 });
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
- // UI.JS
+// UI.JS
 
 let clickedCircle = null;
 let startPos = { x: 0, y: 0 };
@@ -1104,23 +918,23 @@ function getCircleAtPosition(position) {
 
 // Constants for zoom target
 const ZOOM_TARGET_SCALE = 4; // The scale you want the circle to fill
-const ZOOM_DURATION = 500; // Duration of the zoom in milliseconds
+const ZOOM_DURATION = 1500; // Duration of the zoom in milliseconds
 const TARGET_POSITION = { x: window.innerWidth / 7, y: window.innerHeight / 1.5 }; // Target position to center the circle
 
 let isZooming = false; // Flag to disable zooming and panning during info display
-
-// Function to smoothly zoom and pan to a target circle and display info
 function zoomToCircle(targetCircle) {
     isZooming = true; // Disable further zooming and panning
 
     const startBounds = { ...render.bounds };
-    const endBounds = calculateTargetBounds(targetCircle);
-
     const startTime = performance.now();
 
     function animateZoom(currentTime) {
         const elapsedTime = currentTime - startTime;
         const progress = Math.min(elapsedTime / ZOOM_DURATION, 1);
+
+        // Calculate the dynamic target bounds based on the circle's current position
+        const finalPosition = targetCircle.position;
+        const endBounds = calculateTargetBounds(targetCircle, finalPosition);
 
         const interpolatedBounds = interpolateBounds(startBounds, endBounds, progress);
 
@@ -1134,35 +948,55 @@ function zoomToCircle(targetCircle) {
             max: { x: render.bounds.max.x, y: render.bounds.max.y }
         });
 
+        // Gradually slow down time
+        engine.timing.timeScale = 1 - progress;
+
+        // Update text positions during zoom
+        allCircles.forEach(circle => {
+            updateTextPosition(circle, render.bounds);
+        });
+
         if (progress < 1) {
             requestAnimationFrame(animateZoom);
         } else {
-            // After zooming is complete, show the info menu
-            showInfoMenu(targetCircle);
+            isZooming = false; // Enable zooming and panning again
         }
     }
 
     requestAnimationFrame(animateZoom);
+
+    // Show the info menu
+    showInfoMenu(targetCircle);
+
+    // Activate relevant tags in the filters menu
+    activateTags(targetCircle.tags);
+
+    // Apply filters immediately to hide circles that don't match
+    applyFilters();
 }
 
-// Function to calculate target bounds to center and zoom into the circle
-function calculateTargetBounds(targetCircle) {
-    const circlePosition = targetCircle.position;
-    const circleRadius = targetCircle.circleRadius * ZOOM_TARGET_SCALE;
+
+function calculateTargetBounds(targetCircle, finalPosition) {
+    const circleRadius = targetCircle.circleRadius;
+
+    // Calculate the zoom scale to ensure the circle fits within the target bounds
+    const scaleX = window.innerWidth / (circleRadius * 1 * ZOOM_TARGET_SCALE);
+    const scaleY = window.innerHeight / (circleRadius * 1 * ZOOM_TARGET_SCALE);
+    const scale = Math.min(scaleX, scaleY);
 
     const min = {
-        x: circlePosition.x - TARGET_POSITION.x / ZOOM_TARGET_SCALE,
-        y: circlePosition.y - TARGET_POSITION.y / ZOOM_TARGET_SCALE
+        x: finalPosition.x - TARGET_POSITION.x / scale,
+        y: finalPosition.y - TARGET_POSITION.y / scale
     };
     const max = {
-        x: min.x + window.innerWidth / ZOOM_TARGET_SCALE,
-        y: min.y + window.innerHeight / ZOOM_TARGET_SCALE
+        x: min.x + window.innerWidth / scale,
+        y: min.y + window.innerHeight / scale
     };
 
     return { min, max };
 }
 
-// Function to interpolate between start and end bounds
+
 function interpolateBounds(start, end, t) {
     return {
         min: {
@@ -1176,17 +1010,79 @@ function interpolateBounds(start, end, t) {
     };
 }
 
-// Modify the existing mouseup event to call zoomToCircle
-Matter.Events.on(mouseConstraint, 'mouseup', function(event) {
-    const mousePosition = event.mouse.position;
-    const circle = getCircleAtPosition(mousePosition);
-    if (circle && circle.mouseDown) {
-        circle.mouseDown = false;
-        if (!isDragging) {
-            zoomToCircle(circle); // Call zoomToCircle instead of toggleInfoMenu
-        }
+
+// Function to show the info menu
+function showInfoMenu(targetCircle) {
+    const infoMenu = document.getElementById('info-menu');
+    const infoContent = document.getElementById('info-content');
+
+    // Store the original velocity and angular velocity
+    targetCircle.originalVelocity = { x: targetCircle.velocity.x, y: targetCircle.velocity.y };
+    targetCircle.originalAngularVelocity = targetCircle.angularVelocity;
+
+    // Set the clicked circle as static
+    //Matter.Body.setStatic(targetCircle, true);
+    targetCircle.textElement.classList.add('hidden'); // Hide the circle's text element
+
+    // Update the info menu content
+    infoContent.innerHTML = targetCircle.infoContent;
+
+    // Show the info menu with CSS animation
+    infoMenu.style.display = 'block'; // Make it part of the layout
+    setTimeout(() => {
+        infoMenu.classList.add('show');
+        infoMenu.classList.remove('hide');
+    }, 0); // Small delay to ensure the display change takes effect
+
+    // Expand the navigation height
+    document.querySelector('.navigation').classList.add('expanded');
+
+    // Add close button functionality
+    document.getElementById('close-info-menu').addEventListener('click', closeInfoMenu);
+}
+
+// Function to close the info menu
+function closeInfoMenu() {
+    const infoMenu = document.getElementById('info-menu');
+    infoMenu.classList.add('hide');
+    infoMenu.classList.remove('show');
+    setTimeout(() => {
+        infoMenu.style.display = 'none'; // Remove from layout after animation
+    }, 500); // Match the transition duration in CSS
+
+    if (clickedCircle) {
+        clickedCircle.textElement.classList.remove('hidden');
+        clickedCircle = null;
     }
-});
+
+    // Restore previous active tags
+    restorePreviousActiveTags();
+
+    // Collapse the navigation height
+    document.querySelector('.navigation').classList.remove('expanded');
+
+    // Apply filters to restore the circles
+    applyFilters();
+
+    // Update text positions
+    allCircles.forEach(circle => {
+        updateTextPosition(circle, render.bounds);
+    });
+
+    // Gradually restore time scale
+    let progress = 0;
+    const restoreTimeScale = () => {
+        progress = Math.min(progress + 0.05, 1);
+        engine.timing.timeScale = progress;
+
+        if (progress < 1) {
+            requestAnimationFrame(restoreTimeScale);
+        }
+    };
+    requestAnimationFrame(restoreTimeScale);
+}
+
+document.getElementById('close-info-menu').addEventListener('click', closeInfoMenu);
 
 // Attach the mouse events for click and drag detection
 Matter.Events.on(mouseConstraint, 'mousedown', function(event) {
@@ -1218,69 +1114,10 @@ Matter.Events.on(mouseConstraint, 'mouseup', function(event) {
     if (circle && circle.mouseDown) {
         circle.mouseDown = false;
         if (!isDragging) {
-            toggleInfoMenu(circle);
+            zoomToCircle(circle);
         }
     }
 });
-
-// Store original velocities
-let originalVelocity = null;
-let originalAngularVelocity = null;
-
-// Function to show the info menu
-function showInfoMenu(clickedCircle) {
-    const infoMenu = document.getElementById('info-menu');
-    const infoContent = document.getElementById('info-content');
-
-    // Store the original velocity and angular velocity
-    originalVelocity = { x: clickedCircle.velocity.x, y: clickedCircle.velocity.y };
-    originalAngularVelocity = clickedCircle.angularVelocity;
-
-    // Set the clicked circle as static
-    Matter.Body.setStatic(clickedCircle, true);
-    clickedCircle.textElement.classList.add('hidden'); // Hide the circle's text element
-
-    // Update the info menu content
-    infoContent.innerHTML = clickedCircle.infoContent;
-    infoMenu.classList.add('show');
-
-    // Save current active tags
-    previousActiveTags = Array.from(document.querySelectorAll('.tag.active')).map(tag => tag.getAttribute('data-tag'));
-
-    // Activate relevant tags in the filters menu
-    activateTags(clickedCircle.tags);
-
-    // Add close button functionality
-    document.getElementById('close-info-menu').addEventListener('click', closeInfoMenu);
-}
-
-// Close button functionality
-const closeButton = document.createElement('button');
-closeButton.className = 'close-btn';
-
-
-closeButton.addEventListener('click', () => {
-    const infoMenu = document.getElementById('info-menu');
-    if (clickedCircle) {
-        Body.setStatic(clickedCircle, false);
-        clickedCircle.textElement.classList.remove('hidden');
-        clickedCircle.textElement.classList.remove('active');
-        clickedCircle = null;
-
-        const existingElement = document.getElementById('clicked-circle-element');
-        if (existingElement) {
-            existingElement.remove();
-        }
-    }
-    infoMenu.classList.remove('show');
-    isZooming = false
-
-    // Restore previous active tags
-    restorePreviousActiveTags();
-});
-document.getElementById('info-menu').appendChild(closeButton);
-
-
 
 function getRandomPosition(radius) {
     const x = Math.random() * (window.innerWidth - 2 * radius) + radius;
@@ -1288,31 +1125,23 @@ function getRandomPosition(radius) {
     return { x, y };
 }
 
-const circlesData = [
-    { radius: 50, textureUrl: '../content/images/pic1.jpg', text: 'Caroline Polachek', supText: 'US', infoContent: '<h1>Perfume Genius</h1><p>Artist Info Here...</p>', tags: ['Live Concert', 'Vessel Stage', "24.06.23"] },
-    { radius: 30, textureUrl: '../content/images/pic1.jpg', text: 'Caroline Polachek', supText: 'US', infoContent: '<h1>Perfume Genius</h1><p>Artist Info Here...</p>', tags: ['Live Concert', 'Vessel Stage', "24.06.23"] },
-    { radius: 30, textureUrl: '../content/images/pic1.jpg', text: 'Caroline Polachek', supText: 'US', infoContent: '<h1>Perfume Genius</h1><p>Artist Info Here...</p>', tags: ['Live Concert', 'Vessel Stage', "24.06.23"] },
-    { radius: 30, textureUrl: '../content/images/pic1.jpg', text: 'Caroline Polachek', supText: 'US', infoContent: '<h1>Perfume Genius</h1><p>Artist Info Here...</p>', tags: ['Live Concert', 'Vessel Stage', "24.06.23"] },
-    { radius: 50, textureUrl: '../content/images/pic2.jpg', text: 'FKA Twigs', supText: 'UK', infoContent: '<h1>Kate NV</h1><p>Artist Info Here...</p>', tags: ['Live Concert', 'Beach Stage', "22.06.23"] },
-    { radius: 30, textureUrl: '../content/images/pic3.jpg', text: 'Weyes Blood', supText: 'US', infoContent: '<h1>Weyes Blood</h1><p>Artist Info Here...</p>', tags: ['Art Exhibition', 'Astral Stage', "22.06.23"] },
-    { radius: 50, textureUrl: '../content/images/pic3.jpg', text: 'Weyes Blood', supText: 'US', infoContent: '<h1>Weyes Blood</h1><p>Artist Info Here...</p>', tags: ['Art Exhibition', 'Astral Stage', "22.06.23"] },
-    { radius: 30, textureUrl: '../content/images/pic3.jpg', text: 'Weyes Blood', supText: 'US', infoContent: '<h1>Weyes Blood</h1><p>Artist Info Here...</p>', tags: ['Art Exhibition', 'Astral Stage', "22.06.23"] },
-    { radius: 30, textureUrl: '../content/images/pic3.jpg', text: 'Weyes Blood', supText: 'US', infoContent: '<h1>Weyes Blood</h1><p>Artist Info Here...</p>', tags: ['Art Exhibition', 'Astral Stage', "22.06.23"] },
-    { radius: 30, textureUrl: '../content/images/pic4.jpg', text: 'Kate NV', supText: 'RU', infoContent: '<h1>A.G. Cook</h1><p>Artist Info Here...</p>', tags: ['DJ', 'Space Stage', "23.06.23"] },
-    { radius: 50, textureUrl: '../content/images/pic4.jpg', text: 'Kate NV', supText: 'RU', infoContent: '<h1>A.G. Cook</h1><p>Artist Info Here...</p>', tags: ['DJ', 'Space Stage', "23.06.23"] },
-    { radius: 30, textureUrl: '../content/images/pic4.jpg', text: 'Kate NV', supText: 'RU', infoContent: '<h1>A.G. Cook</h1><p>Artist Info Here...</p>', tags: ['DJ', 'Space Stage', "23.06.23"] },
-    { radius: 50, textureUrl: '../content/images/pic4.jpg', text: 'Kate NV', supText: 'RU', infoContent: '<h1>A.G. Cook</h1><p>Artist Info Here...</p>', tags: ['DJ', 'Space Stage', "23.06.23"] },
-    { radius: 30, textureUrl: '../content/images/pic5.jpg', text: 'Perfume Genius', supText: 'US', infoContent: '<h1>Caroline Polachek</h1><p>Artist Info Here...</p>', tags: ['Workshop', 'Amphi Stage', "22.06.23"] },
-    { radius: 50, textureUrl: '../content/images/pic5.jpg', text: 'Perfume Genius', supText: 'US', infoContent: '<h1>Caroline Polachek</h1><p>Artist Info Here...</p>', tags: ['Workshop', 'Amphi Stage', "22.06.23"] },
-    { radius: 30, textureUrl: '../content/images/pic5.jpg', text: 'Perfume Genius', supText: 'US', infoContent: '<h1>Caroline Polachek</h1><p>Artist Info Here...</p>', tags: ['Workshop', 'Amphi Stage', "22.06.23"] },
-];
+// Function to load JSON data
+async function loadCirclesData() {
+    try {
+        const response = await fetch('./content/circles.json'); // Update the path as needed
+        const circlesData = await response.json();
 
-circlesData.forEach(data => {
-    const position = getRandomPosition(data.radius);
-    addCircle(position.x, position.y, data.radius, data.textureUrl, data.text, data.supText, data.infoContent, data.tags);
-});
+        circlesData.forEach(data => {
+            const position = getRandomPosition(data.radius);
+            addCircle(position.x, position.y, data.radius, data.textureUrl, data.text, data.supText, data.infoContent, data.tags);
+        });
+    } catch (error) {
+        console.error('Error loading circles data:', error);
+    }
+}
 
-
+// Call the function to load and add circles
+loadCirclesData();
 
 // Initial walls creation
 createWalls();
