@@ -471,7 +471,6 @@ function activateTags(tags) {
     });
 }
 
-// Function to initialize the page
 function initializePage() {
     setActiveLink('index-link');
     const newsTab = document.getElementById('news-tab');
@@ -524,11 +523,33 @@ function initializePage() {
                 } else {
                     allNewsContainer.appendChild(card);
                 }
+
+                // Apply dynamic background color to the created card
+                createOrUpdateCard(card);
             });
         });
 }
 
-// Initialize the page when the DOM content is loaded
+
+// Function to create or update card with dynamic background color
+function createOrUpdateCard(cardElement) {
+    const imgElement = cardElement.querySelector('img');
+    const cardBgElement = cardElement.querySelector('.card-bg');
+
+    if (imgElement) {
+        imgElement.addEventListener('load', () => {
+            getDominantColorFromImage(imgElement.src, function(dominantColor) {
+                const colorString = `rgba(${dominantColor[0]}, ${dominantColor[1]}, ${dominantColor[2]}, 0.7)`;
+                if (cardBgElement) {
+                    cardBgElement.style.backgroundColor = colorString;
+                    cardBgElement.style.backdropFilter = 'blur(30px)'; // Ensure backdrop filter is applied
+                    cardBgElement.style.webkitBackdropFilter = 'blur(30px)'; // For Safari support
+                }
+            });
+        });
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     initializePage();
     document.getElementById('news-link').addEventListener('click', function() {
@@ -555,7 +576,23 @@ document.addEventListener('DOMContentLoaded', function() {
             activateTag(event.target);
         }
     });
+
+    // Apply dynamic background color to news cards
+    const cards = document.querySelectorAll('.card');
+    cards.forEach(card => {
+        const imgElement = card.querySelector('img');
+        if (imgElement) {
+            getDominantColorFromImage(imgElement.src, function(dominantColor) {
+                const colorString = `rgba(${dominantColor[0]}, ${dominantColor[1]}, ${dominantColor[2]}, 0.7)`;
+                const cardBgElement = card.querySelector('.card-bg');
+                if (cardBgElement) {
+                    cardBgElement.style.backgroundColor = colorString;
+                }
+            });
+        }
+    });
 });
+
 
 // Show the news tab
 function showNewsTab() {
@@ -918,7 +955,7 @@ function getCircleAtPosition(position) {
 
 // Constants for zoom target
 const ZOOM_TARGET_SCALE = 4; // The scale you want the circle to fill
-const ZOOM_DURATION = 1500; // Duration of the zoom in milliseconds
+const ZOOM_DURATION = 3000; // Duration of the zoom in milliseconds
 const TARGET_POSITION = { x: window.innerWidth / 7, y: window.innerHeight / 1.5 }; // Target position to center the circle
 
 let isZooming = false; // Flag to disable zooming and panning during info display
@@ -973,6 +1010,44 @@ function zoomToCircle(targetCircle) {
 
     // Apply filters immediately to hide circles that don't match
     applyFilters();
+
+    // Extract and apply the dominant color to the info menu
+    getDominantColorFromImage(targetCircle.render.sprite.texture, function(dominantColor) {
+        const colorString = `rgba(${dominantColor[0]}, ${dominantColor[1]}, ${dominantColor[2]}, 0.7)`;
+        const infoMenu = document.getElementById('info-menu');
+        infoMenu.style.backgroundColor = colorString;
+        infoMenu.style.backdropFilter = 'blur(30px)'; // Ensure backdrop filter is applied
+    });
+}
+
+
+// Function to get the dominant color from an image
+function getDominantColorFromImage(imageSrc, callback) {
+    const img = new Image();
+    img.crossOrigin = 'Anonymous';
+    img.src = imageSrc;
+
+    img.onload = function() {
+        const colorThief = new ColorThief();
+        const palette = colorThief.getPalette(img);
+        let selectedColor = palette[0];
+
+        // Find the first dark color in the palette
+        for (let color of palette) {
+            if (isDark(color)) {
+                selectedColor = color;
+                break;
+            }
+        }
+        callback(selectedColor);
+    };
+}
+
+
+function isDark(color) {
+    // Convert RGB to YIQ to determine the brightness
+    const yiq = ((color[0] * 299) + (color[1] * 587) + (color[2] * 114)) / 1000;
+    return yiq < 200;
 }
 
 
@@ -996,6 +1071,18 @@ function calculateTargetBounds(targetCircle, finalPosition) {
     return { min, max };
 }
 
+function createOrUpdateCard(cardElement, imageSrc) {
+    const imgElement = cardElement.querySelector('img');
+    const cardBgElement = cardElement.querySelector('.card-bg');
+
+    if (imgElement) {
+        getDominantColorFromImage(imgElement.src, function(dominantColor) {
+            const colorString = `rgba(${dominantColor[0]}, ${dominantColor[1]}, ${dominantColor[2]}, 0.7)`;
+            cardBgElement.style.backgroundColor = colorString;
+        });
+    }
+}
+
 
 function interpolateBounds(start, end, t) {
     return {
@@ -1011,7 +1098,6 @@ function interpolateBounds(start, end, t) {
 }
 
 
-// Function to show the info menu
 function showInfoMenu(targetCircle) {
     const infoMenu = document.getElementById('info-menu');
     const infoContent = document.getElementById('info-content');
@@ -1020,9 +1106,8 @@ function showInfoMenu(targetCircle) {
     targetCircle.originalVelocity = { x: targetCircle.velocity.x, y: targetCircle.velocity.y };
     targetCircle.originalAngularVelocity = targetCircle.angularVelocity;
 
-    // Set the clicked circle as static
-    //Matter.Body.setStatic(targetCircle, true);
-    targetCircle.textElement.classList.add('hidden'); // Hide the circle's text element
+    // Hide the circle's text element
+    targetCircle.textElement.classList.add('hidden');
 
     // Update the info menu content
     infoContent.innerHTML = targetCircle.infoContent;
@@ -1031,7 +1116,7 @@ function showInfoMenu(targetCircle) {
     infoMenu.style.display = 'block'; // Make it part of the layout
     setTimeout(() => {
         infoMenu.classList.add('show');
-        infoMenu.classList.remove('hide');
+        infoMenu.classList.remove('hidden');
     }, 0); // Small delay to ensure the display change takes effect
 
     // Expand the navigation height
@@ -1040,6 +1125,7 @@ function showInfoMenu(targetCircle) {
     // Add close button functionality
     document.getElementById('close-info-menu').addEventListener('click', closeInfoMenu);
 }
+
 
 // Function to close the info menu
 function closeInfoMenu() {
@@ -1069,7 +1155,7 @@ function closeInfoMenu() {
         updateTextPosition(circle, render.bounds);
     });
 
-    // Gradually restore time scale
+    // Gradually restore time scale without altering velocities
     let progress = 0;
     const restoreTimeScale = () => {
         progress = Math.min(progress + 0.05, 1);
@@ -1081,6 +1167,7 @@ function closeInfoMenu() {
     };
     requestAnimationFrame(restoreTimeScale);
 }
+
 
 document.getElementById('close-info-menu').addEventListener('click', closeInfoMenu);
 
