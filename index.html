@@ -14,37 +14,47 @@
 
 <body>
   <div class="navigation">
-  <div class="menu">
-    <nav>
-      <ul>
-        <li><a href="#" id="index-link">Index</a></li>
-        <li><a href="#" id="news-link">News</a></li>
-        <li><a href="#">Community</a></li>
-        <li><a href="#">Tickets</a></li>
-      </ul>
-    </nav>
+    <div class="menu">
+      <nav>
+        <ul>
+          <li><a href="#" id="index-link">Index</a></li>
+          <li><a href="#" id="news-link">News</a></li>
+          <li><a href="#">Community</a></li>
+          <li><a href="#">Tickets</a></li>
+        </ul>
+      </nav>
+    </div>
+
+    <div class="filters"></div>
+
+    <div id="circle-card" class="circle-card hidden"></div> <!-- Move circle-card to the left -->
+    
+    <div id="info-menu" class="info-menu hidden">
+      <div id="info-content"></div>
+      <div id="related-news">
+        <h2>Related News</h2>
+        <div class="related-news-cards"></div>
+      </div>
+      <div id="related-artists">
+        <h2>Related Artists</h2>
+        <div class="related-artist-circles"></div>
+      </div>
+      <button class="close-btn" id="close-info-menu"></button>
+    </div>
+
+    <div id="news-tab" class="news-tab hidden">
+      <button class="close-btn" id="close-news-tab"></button>
+      <h1>Featured Stories</h1>
+      <div class="card-container" id="featured-stories"></div> <!-- Updated with card-container class -->
+      <h1>All News</h1>
+      <div class="card-container" id="all-news"></div> <!-- Updated with card-container class -->
+    </div>
   </div>
 
-  <div class="filters"></div>
-
-  <div id="info-menu" class="info-menu hidden">
-    <div id="info-content"></div>
-    <button class="close-btn" id="close-info-menu"></button>
+  <div class="frame" id="frame">
+    <div id="overlay-container"></div>
+    <canvas id="matterCanvas"></canvas>
   </div>
-
-  <div id="news-tab" class="news-tab hidden">
-    <button class="close-btn" id="close-news-tab"></button>
-    <h1>Featured Stories</h1>
-    <div class="featured-stories" id="featured-stories"></div>
-    <h1>All News</h1>
-    <div class="all-news" id="all-news"></div>
-  </div>
-</div>
-
-<div class="frame" id="frame">
-  <canvas id="matterCanvas"></canvas>
-  <div id="overlay-container"></div>
-</div>
 
   <script src="main.js" defer></script>
 </body>

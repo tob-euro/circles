@@ -471,24 +471,85 @@ function activateTags(tags) {
     });
 }
 
+
+// Function to create or update card with dynamic background color
+function createOrUpdateCard(cardElement) {
+    const imgElement = cardElement.querySelector('img');
+    const cardBgElement = cardElement.querySelector('.card-bg');
+    const carddElement = cardElement.querySelector('.card');
+    const cardButtons = cardElement.querySelector('.buttons');
+
+    if (imgElement) {
+        imgElement.addEventListener('load', () => {
+            getDominantColorFromImage(imgElement.src, function(dominantColor) {
+                const colorString = `rgba(${dominantColor[0]}, ${dominantColor[1]}, ${dominantColor[2]}, 0.7)`;
+                if (cardElement) {
+                    cardElement.style.backgroundColor = colorString;
+                }
+                if (cardBgElement) {
+                    cardBgElement.style.background = colorString;
+                }
+                if (cardButtons) {
+                    cardButtons.style.backgroundColor = colorString;
+                }
+            });
+        });
+    }
+}
+
+
+document.addEventListener('DOMContentLoaded', function() {
+    initializePage();
+    document.getElementById('news-link').addEventListener('click', function() {
+        showNewsTab();
+        setActiveLink('news-link');
+        updateFilters('news');
+    });
+
+    document.getElementById('index-link').addEventListener('click', function() {
+        hideNewsTab();
+        setActiveLink('index-link');
+        updateFilters('index');
+    });
+
+    document.getElementById('close-news-tab').addEventListener('click', function() {
+        hideNewsTab();
+        setActiveLink('index-link');
+        updateFilters('index');
+    });
+
+    document.querySelector('.filters').addEventListener('click', (event) => {
+        if (event.target.classList.contains('tag')) {
+            activateTag(event.target);
+        }
+    });
+
+    fetchNewsData();
+
+    // Add click event listener for expand/collapse functionality
+    document.querySelectorAll('.read-more').forEach(button => {
+        button.addEventListener('click', function(event) {
+            event.stopPropagation();
+            const articleId = this.getAttribute('data-article-id');
+            expandCard(articleId);
+        });
+    });
+});
+
 function initializePage() {
     setActiveLink('index-link');
     const newsTab = document.getElementById('news-tab');
     const navigation = document.querySelector('.navigation');
     newsTab.classList.remove('show');
     newsTab.classList.add('hide');
-    newsTab.style.display = 'none'; // Hide on load
-    navigation.classList.remove('expanded'); // Ensure it's in default state
-    updateFilters('index'); // Initialize filters for the index page
+    newsTab.style.display = 'none';
+    navigation.classList.remove('expanded');
+    updateFilters('index');
+}
 
-    // Fetch and populate news data
+function fetchNewsData() {
     fetch('../content/news.json')
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok ' + response.statusText);
-            }
-            return response.json();
-        })
+    .then(response => response.json())
         .then(data => {
             const featuredContainer = document.getElementById('featured-stories');
             const allNewsContainer = document.getElementById('all-news');
@@ -497,24 +558,27 @@ function initializePage() {
                 const card = document.createElement('div');
                 card.className = 'card';
                 card.id = article.id;
+                card.setAttribute('data-original-content', card.innerHTML);
 
                 const contentHtml = article.content.replace(/\n/g, '<br>');
 
                 card.innerHTML = `
+                    <div class="title-info-container">
+                        <h2>${article.title}</h2>
+                        <div class="info">
+                            <span class="tag">${article.tag}</span>
+                            <span class="date">${article.date}</span>
+                        </div>
+                    </div>
                     <img src="${article.image}" alt="${article.title}">
                     <div class="card-bg">
-                      <h2>${article.title}</h2>
-                      <div class="info">
-                          <span class="tag">${article.tag}</span>
-                          <span class="date">${article.date}</span>
-                      </div>
-                      <div class="card-content">
-                          <span class="content">${contentHtml}</span>
-                      </div>
+                        <div class="card-content">
+                            <span class="content">${contentHtml}</span>
+                        </div>
                     </div>
                     <div class="buttons">
                         <button class="share" onclick="window.open('${article.share_url}', '_blank')">Share</button>
-                        <button class="read-more" onclick="window.location.href='${article.read_more_url}'">Read more →</button>
+                        <button class="read-more" data-article-id="${article.id}">Read more →</button>
                     </div>
                 `;
 
@@ -524,10 +588,76 @@ function initializePage() {
                     allNewsContainer.appendChild(card);
                 }
 
-                // Apply dynamic background color to the created card
                 createOrUpdateCard(card);
             });
+
+            document.querySelectorAll('.read-more').forEach(button => {
+                button.addEventListener('click', function(event) {
+                    event.stopPropagation();
+                    const articleId = this.getAttribute('data-article-id');
+                    expandCard(articleId);
+                });
+            });
+        })
+        .catch(error => console.error('Error fetching news data:', error));
+}
+
+
+function expandCard(articleId) {
+    const card = document.getElementById(articleId);
+    if (card) {
+        card.classList.add('expanded');
+
+        const cardBgElement = card.querySelector('.card-bg');
+        const cardElement = card;
+
+        // Ensure card background color is inherited from card-bg
+        if (cardBgElement) {
+            const computedStyle = getComputedStyle(cardBgElement);
+            const bgColor = computedStyle.backgroundColor;
+            cardElement.style.backgroundColor = bgColor;
+        }
+
+        fetch('../content/news.json')
+            .then(response => response.json())
+            .then(data => {
+                const article = data.find(article => article.id === articleId);
+                if (article) {
+                    card.innerHTML = `
+                        <div class="card-content">
+                            <button class="close-btn" onclick="collapseCard('${articleId}')">×</button>
+                            <h1>${article.title}</h1>
+                        </div>
+                        <img src="${article.image}" alt="${article.title}" class="article-image">
+                        <div class="article-text">
+                            <p>${article.content.replace(/\n/g, '<br>')}</p>
+                        </div>
+                        <div class="buttons">
+                            <button class="share" onclick="window.open('${article.share_url}', '_blank')">Share</button>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => console.error('Error loading article:', error));
+    }
+}
+
+function collapseCard(articleId) {
+    const card = document.getElementById(articleId);
+    if (card) {
+        card.classList.remove('expanded');
+        const originalContent = card.getAttribute('data-original-content');
+        if (originalContent) {
+            card.innerHTML = originalContent;
+        }
+
+        card.querySelector('.read-more').addEventListener('click', function(event) {
+            event.stopPropagation();
+            expandCard(articleId);
         });
+
+        createOrUpdateCard(card);
+    }
 }
 
 
@@ -535,6 +665,7 @@ function initializePage() {
 function createOrUpdateCard(cardElement) {
     const imgElement = cardElement.querySelector('img');
     const cardBgElement = cardElement.querySelector('.card-bg');
+    const cardButtons = cardElement.querySelectorAll('.buttons button'); // Select all buttons
 
     if (imgElement) {
         imgElement.addEventListener('load', () => {
@@ -542,89 +673,46 @@ function createOrUpdateCard(cardElement) {
                 const colorString = `rgba(${dominantColor[0]}, ${dominantColor[1]}, ${dominantColor[2]}, 0.7)`;
                 if (cardBgElement) {
                     cardBgElement.style.backgroundColor = colorString;
-                    cardBgElement.style.backdropFilter = 'blur(30px)'; // Ensure backdrop filter is applied
-                    cardBgElement.style.webkitBackdropFilter = 'blur(30px)'; // For Safari support
                 }
+                // Apply background color to all buttons
+                cardButtons.forEach(button => {
+                    button.style.backgroundColor = colorString;
+                });
             });
         });
     }
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-    initializePage();
-    document.getElementById('news-link').addEventListener('click', function() {
-        showNewsTab();
-        setActiveLink('news-link');
-        updateFilters('news'); // Update filters for news tab
-    });
 
-    document.getElementById('index-link').addEventListener('click', function() {
-        hideNewsTab();
-        setActiveLink('index-link');
-        updateFilters('index'); // Update filters for index page
-    });
-
-    document.getElementById('close-news-tab').addEventListener('click', function() {
-        hideNewsTab();
-        setActiveLink('index-link');
-        updateFilters('index'); // Update filters for index page
-    });
-
-    // Add event listener for tag activation
-    document.querySelector('.filters').addEventListener('click', (event) => {
-        if (event.target.classList.contains('tag')) {
-            activateTag(event.target);
-        }
-    });
-
-    // Apply dynamic background color to news cards
-    const cards = document.querySelectorAll('.card');
-    cards.forEach(card => {
-        const imgElement = card.querySelector('img');
-        if (imgElement) {
-            getDominantColorFromImage(imgElement.src, function(dominantColor) {
-                const colorString = `rgba(${dominantColor[0]}, ${dominantColor[1]}, ${dominantColor[2]}, 0.7)`;
-                const cardBgElement = card.querySelector('.card-bg');
-                if (cardBgElement) {
-                    cardBgElement.style.backgroundColor = colorString;
-                }
-            });
-        }
-    });
-});
-
-
-// Show the news tab
 function showNewsTab() {
     const newsTab = document.getElementById('news-tab');
     const navigation = document.querySelector('.navigation');
-    newsTab.style.display = 'block'; // Make it part of the layout
-    navigation.classList.add('expanded'); // Expand the navigation height
+    newsTab.style.display = 'block';
+    navigation.classList.add('expanded');
     setTimeout(() => {
         newsTab.classList.add('show');
         newsTab.classList.remove('hide');
-    }); // Small delay to ensure the display change takes effect
+    });
 }
 
-// Hide the news tab
 function hideNewsTab() {
     const newsTab = document.getElementById('news-tab');
     const navigation = document.querySelector('.navigation');
     newsTab.classList.add('hide');
     newsTab.classList.remove('show');
     setTimeout(() => {
-        newsTab.style.display = 'none'; // Remove from layout after animation
-        navigation.classList.remove('expanded'); // Reset the navigation height
-    }, 500); // Match the transition duration in CSS
+        newsTab.style.display = 'none';
+        navigation.classList.remove('expanded');
+    }, 500);
 }
 
-// Set the active link in the navigation menu
 function setActiveLink(activeId) {
     const menuLinks = document.querySelectorAll('.menu nav ul li a');
     menuLinks.forEach(link => {
         link.classList.toggle('active', link.id === activeId);
     });
 }
+
 
 // Function to activate or deactivate a tag
 function activateTag(tagElement) {
@@ -720,9 +808,9 @@ function fitSprite(imageUrl, diameter, callback) {
     };
     img.src = imageUrl;
 }
-function addCircle(x, y, radius, textureUrl, text, supText, infoContent, tags) {
+function addCircle(x, y, radius, textureUrl, text, supText, infoContent, tags, relatedNews = [], relatedArtists = []) {
     fitSprite(textureUrl, radius * 2, function (circularTexture) {
-        const mass = (Math.PI * radius)/15; // Mass proportional to the area of the circle
+        const mass = (Math.PI * radius)/(radius*0.75); // Mass proportional to the area of the circle
 
         const circle = Bodies.circle(x, y, radius, {
             restitution: 1,
@@ -758,6 +846,8 @@ function addCircle(x, y, radius, textureUrl, text, supText, infoContent, tags) {
         circle.originalRadius = radius;
         circle.originalXScale = circle.render.sprite.xScale;
         circle.originalYScale = circle.render.sprite.yScale;
+        circle.relatedNews = relatedNews; // Add related news
+        circle.relatedArtists = relatedArtists; // Add related artists
 
         Composite.add(world, circle);
         createCircleDOMElement(circle);
@@ -831,7 +921,6 @@ function animateBodyAppearance(circle) {
     }
     requestAnimationFrame(grow);
 }
-
 
 
 // Function to animate the body's disappearance
@@ -956,9 +1045,11 @@ function getCircleAtPosition(position) {
 // Constants for zoom target
 const ZOOM_TARGET_SCALE = 4; // The scale you want the circle to fill
 const ZOOM_DURATION = 3000; // Duration of the zoom in milliseconds
-const TARGET_POSITION = { x: window.innerWidth / 7, y: window.innerHeight / 1.5 }; // Target position to center the circle
+const TARGET_POSITION = { x: window.innerWidth / 6, y: window.innerHeight / 1.5 }; // Target position to center the circle
 
 let isZooming = false; // Flag to disable zooming and panning during info display
+let clickedCircleCard = null;
+
 function zoomToCircle(targetCircle) {
     isZooming = true; // Disable further zooming and panning
 
@@ -1018,8 +1109,39 @@ function zoomToCircle(targetCircle) {
         infoMenu.style.backgroundColor = colorString;
         infoMenu.style.backdropFilter = 'blur(30px)'; // Ensure backdrop filter is applied
     });
+
+    // Create and position the circle card container
+    createCircleCardContainer(targetCircle);
 }
 
+function createCircleCardContainer(circle) {
+    const overlayContainer = document.getElementById('overlay-container');
+
+    // Remove the existing card if any
+    if (clickedCircleCard) {
+        overlayContainer.removeChild(clickedCircleCard);
+    }
+
+    // Create a new card container
+    const cardContainer = document.createElement('div');
+    cardContainer.className = 'circle-card';
+    
+    const { x, y } = circle.position;23
+
+    // Calculate the position without scaling
+    const scaledX = (x - render.bounds.min.x) / boundsScale.x;
+    const scaledY = (y - render.bounds.min.y) / boundsScale.y;
+
+    cardContainer.style.left = `${scaledX}px`;
+    cardContainer.style.top = `${scaledY}px`;
+
+    // Optionally, you can add more content to the cardContainer here
+
+    overlayContainer.appendChild(cardContainer);
+
+    // Store the reference to the created card
+    clickedCircleCard = cardContainer;
+}
 
 // Function to get the dominant color from an image
 function getDominantColorFromImage(imageSrc, callback) {
@@ -1043,13 +1165,11 @@ function getDominantColorFromImage(imageSrc, callback) {
     };
 }
 
-
 function isDark(color) {
     // Convert RGB to YIQ to determine the brightness
     const yiq = ((color[0] * 299) + (color[1] * 587) + (color[2] * 114)) / 1000;
     return yiq < 200;
 }
-
 
 function calculateTargetBounds(targetCircle, finalPosition) {
     const circleRadius = targetCircle.circleRadius;
@@ -1071,18 +1191,6 @@ function calculateTargetBounds(targetCircle, finalPosition) {
     return { min, max };
 }
 
-function createOrUpdateCard(cardElement, imageSrc) {
-    const imgElement = cardElement.querySelector('img');
-    const cardBgElement = cardElement.querySelector('.card-bg');
-
-    if (imgElement) {
-        getDominantColorFromImage(imgElement.src, function(dominantColor) {
-            const colorString = `rgba(${dominantColor[0]}, ${dominantColor[1]}, ${dominantColor[2]}, 0.7)`;
-            cardBgElement.style.backgroundColor = colorString;
-        });
-    }
-}
-
 
 function interpolateBounds(start, end, t) {
     return {
@@ -1101,6 +1209,7 @@ function interpolateBounds(start, end, t) {
 function showInfoMenu(targetCircle) {
     const infoMenu = document.getElementById('info-menu');
     const infoContent = document.getElementById('info-content');
+    const circleCardContainer = document.getElementById('circle-card');
 
     // Store the original velocity and angular velocity
     targetCircle.originalVelocity = { x: targetCircle.velocity.x, y: targetCircle.velocity.y };
@@ -1112,11 +1221,34 @@ function showInfoMenu(targetCircle) {
     // Update the info menu content
     infoContent.innerHTML = targetCircle.infoContent;
 
+    // Populate related news
+    const relatedNewsContainer = document.querySelector('.related-news-cards');
+    relatedNewsContainer.innerHTML = ''; // Clear existing content
+    if (targetCircle.relatedNews) {
+        targetCircle.relatedNews.forEach(newsId => {
+            const article = newsArticles[newsId];
+            if (article) {
+                const newsCard = createRelatedNewsCard(article);
+                relatedNewsContainer.appendChild(newsCard);
+            }
+        });
+    }
+
+    // Update and display the circle card container
+    circleCardContainer.innerHTML = `
+        <div class="cutout"></div>
+        <h2>${targetCircle.text}</h2>
+        <p>Additional details about the circle can be added here.</p>
+    `;
+    circleCardContainer.style.display = 'block';
+
     // Show the info menu with CSS animation
     infoMenu.style.display = 'block'; // Make it part of the layout
     setTimeout(() => {
         infoMenu.classList.add('show');
         infoMenu.classList.remove('hidden');
+        circleCardContainer.classList.add('show');
+        circleCardContainer.classList.remove('hidden');
     }, 0); // Small delay to ensure the display change takes effect
 
     // Expand the navigation height
@@ -1127,13 +1259,74 @@ function showInfoMenu(targetCircle) {
 }
 
 
+let newsArticles = {};
+
+fetch('./content/news.json')
+    .then(response => response.json())
+    .then(data => {
+        data.forEach(article => {
+            newsArticles[article.id] = article;
+        });
+    })
+    .catch(error => console.error('Error loading news articles:', error));
+
+
+    function createRelatedNewsCard(article) {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.id = article.id;
+        card.setAttribute('data-original-content', card.innerHTML);
+    
+        const contentHtml = article.content.replace(/\n/g, '<br>');
+    
+        card.innerHTML = `
+            <img src="${article.image}" alt="${article.title}">
+            <div class="card-bg">
+                <h2>${article.title}</h2>
+                <div class="info">
+                    <span class="tag">${article.tag}</span>
+                    <span class="date">${article.date}</span>
+                </div>
+                <div class="card-content">
+                    <span class="content">${contentHtml}</span>
+                </div>
+            </div>
+            <div class="buttons">
+                <button class="share" onclick="window.open('${article.share_url}', '_blank')">Share</button>
+                <button class="read-more" data-article-id="${article.id}">Read more →</button>
+            </div>
+        `;
+    
+        return card;
+    }
+
+function createRelatedArtistCircle(artist) {
+    const circle = document.createElement('div');
+    circle.className = 'artist-circle';
+    circle.style.backgroundImage = `url(${artist.image})`;
+    circle.style.width = '50px'; // Adjust size as needed
+    circle.style.height = '50px';
+    circle.style.borderRadius = '50%';
+    circle.style.backgroundSize = 'cover';
+    circle.style.backgroundPosition = 'center';
+    circle.setAttribute('data-artist-id', artist.id); // Add data attribute to identify the artist
+
+    return circle;
+}
+
 // Function to close the info menu
 function closeInfoMenu() {
     const infoMenu = document.getElementById('info-menu');
+    const circleCardContainer = document.getElementById('circle-card');
+
     infoMenu.classList.add('hide');
     infoMenu.classList.remove('show');
+    circleCardContainer.classList.add('hide');
+    circleCardContainer.classList.remove('show');
+
     setTimeout(() => {
         infoMenu.style.display = 'none'; // Remove from layout after animation
+        circleCardContainer.style.display = 'none';
     }, 500); // Match the transition duration in CSS
 
     if (clickedCircle) {
@@ -1167,6 +1360,7 @@ function closeInfoMenu() {
     };
     requestAnimationFrame(restoreTimeScale);
 }
+
 
 
 document.getElementById('close-info-menu').addEventListener('click', closeInfoMenu);
@@ -1220,12 +1414,13 @@ async function loadCirclesData() {
 
         circlesData.forEach(data => {
             const position = getRandomPosition(data.radius);
-            addCircle(position.x, position.y, data.radius, data.textureUrl, data.text, data.supText, data.infoContent, data.tags);
+            addCircle(position.x, position.y, data.radius, data.textureUrl, data.text, data.supText, data.infoContent, data.tags, data.relatedNews, data.relatedArtists);
         });
     } catch (error) {
         console.error('Error loading circles data:', error);
     }
 }
+
 
 // Call the function to load and add circles
 loadCirclesData();

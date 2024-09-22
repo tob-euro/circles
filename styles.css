@@ -1,12 +1,12 @@
 /* Define CSS variables for light and dark modes */
 :root {
-    --text-color: rgba(0, 0, 0, 0.85);
-    --menu-color: rgba(255, 255, 255, 0.5);
-    --background-color: #f0f0f0;
-    --overlay-text-color: rgba(255, 255, 255, 0.8);
+    --text-color: rgba(0, 0, 0);
+    --menu-color: rgba(255, 255, 255, 0.75);
+    --background-color: #F3F2F8;
+    --overlay-text-color: rgba(255, 255, 255, 0.75);
     --tag-color: rgba(0, 0, 0, 0.5);
     --tag-active-color: tomato;
-    --box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    --box-shadow: 0 0px 20px rgba(0, 0, 0, 0.1);
     --border-color: rgb(120, 120, 120);
     --close-btn-color: rgba(0, 0, 0, 0.85);
 }
@@ -50,15 +50,14 @@
 }
 
 body, html {
-    margin: 0;
-    padding: 0;
     font-family: 'Suisse Intl', Arial, sans-serif;
     background-color: var(--background-color);
     overflow: hidden;
+    padding: 0;
+    margin: 0;
 }
 
 ::selection {
-    color: var(--text-color);
     background: tomato;
 }
 
@@ -69,22 +68,22 @@ body, html {
 
 .navigation {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 2fr; /* Adjusted columns to 2/3 and 1/3 */
     grid-template-rows: auto auto;
-    grid-gap: 10px;
+    grid-gap: 5px;
     position: fixed;
     top: 0;
     right: 0;
     left: 0;
     z-index: 1;
-    margin: 10px 20px;
+    margin: 5px 10px;
     border-radius: 30px;
-    width: auto; /* Ensure it doesn't cover the entire width */
-    /* background-color: var(--menu-color); */
+    width: auto;
 }
 
 .navigation.expanded {
     bottom: 0;
+    grid-template-rows: auto 1fr;
 }
 
 .menu {
@@ -95,33 +94,75 @@ body, html {
     grid-column: 1 / -1;
 }
 
-
 .info-menu {
     box-sizing: border-box;
     overflow-y: auto;
-    transform: translateY(100%);
-    transition: transform 0.3s ease-in-out, background-color 0.3s ease-in-out;
-    grid-column: 2 / 3;
+    transform: translateX(100%);
+    transition: transform 0.3s ease-in-out;
+    grid-column: 2 / 3; /* Adjust column positioning */
     background-color: var(--menu-color); /* Default color */
 }
 
 .info-menu.show {
-    transform: translateY(0);
+    transform: translateX(0);
 }
-  
-  .content {
+
+.circle-card {
+    background-color: rgba(255, 255, 255, 0.7);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    grid-column: 1 / 2; /* Adjust column positioning */
+    display: none; /* Hidden by default */
+    transform: translateY(100%);
+    transition: transform 0.3s ease-in-out;
+    opacity: 0;
+}
+
+.circle-card.show {
+    transform: translateY(0);
+    display: none;
+    opacity: 0;
+}
+
+.content {
     position: relative;
     grid-column: 1 / 2;
     grid-row: 3 / 4;
-  }
+}
 
-.menu, .filters, .info-menu, .news-tab, .card-bg, .card, .buttons button, .card-bg {
+.related-news-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-gap: 20px;
+    margin: 20px 0;
+}
+
+
+.related-news-card img {
+    width: 100%;
+    height: auto;
+    border-radius: 10px;
+}
+
+.related-news-card h2 {
+    font-size: 1.5em;
+    margin: 10px 0;
+}
+
+.related-news-card .info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9em;
+    color: var(--text-color);
+}
+
+
+.menu, .filters, .info-menu, .news-tab, .card-bg, .card, .buttons button, .card-bg, .circle-card {
     background-color: var(--menu-color);
     backdrop-filter: blur(30px);
     -webkit-backdrop-filter: blur(30px);
     border-radius: 30px;
     box-shadow: var(--box-shadow);
-    padding: 15px 20px;
+    padding: 10px 20px;
     color: var(--text-color);
 }
 
@@ -207,15 +248,7 @@ body, html {
     background-color: tomato;
 }
 
-/* Overlay Container */
-#overlay-container {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none; /* Allows clicks to pass through */
-}
+
 
 .overlay-text {
     position: absolute;
@@ -263,103 +296,32 @@ body, html {
 }   
 
 
+
+
+
+
 /* News Tab */
 .news-tab {
     box-sizing: border-box;
     grid-column: 1 / -1;
-    background-color: var(--menu-color);
     overflow-y: auto;
     transform: translateY(100%);
-    transition: transform 0.5s ease-in-out, opacity 0.5s ease-in-out;
-    visibility: hidden;
-    bottom: 0; /* Align the bottom edge */
-    width: 100%;
+    transition: transform 0.5s ease-in-out;
 }
 
 .news-tab.show {
     transform: translateY(0);
-    visibility: visible;
     display: block; /* Show in the layout when visible */
 }
 
 .news-tab.hide {
     transform: translateY(100%);
-    visibility: hidden;
 }
 
 .news-tab h1 {
-    font-size: 2.5em;
+    font-size: 3em;
     color: var(--text-color);
     margin-top: 20px;
-}
-
-.card {
-    padding: 0;
-    transition: box-shadow 0.3s ease;
-    aspect-ratio: 2.5 / 4;
-    position: relative;
-    overflow: hidden;
-}
-.card:hover {
-    box-shadow: var(--box-shadow);
-}
-
-.card img {
-    width: 100%;
-    height: auto;
-    object-fit: cover; /* Ensure the image covers the entire card without distortion */
-    position: absolute; /* Position the image absolutely within the card */
-    top: 0;
-    left: 0;
-    aspect-ratio: 2.5 / 4;
-}
-
-.card-bg {
-    border-radius: 0;
-    height: 25%;
-    transition: height 0.5s ease;
-    box-sizing: border-box;
-}
-.card:hover .card-bg {
-    height: 100%;   
-}
-
-.card h2 {
-    margin: 0;
-    color: var(--text-color);
-}
-
-.card .info {
-    display: flex;
-    font-weight: 300;
-    justify-content: space-between;
-    color: var(--tag-color);
-}
-
-.card-bg .card-content {
-    opacity: 0%;
-    transition: opacity 0.5s ease;
-    padding: 20px 15px;
-}
-
-.card:hover .card-bg .card-content {
-    opacity: 1;
-}
-
-.card .buttons {
-    display: flex;
-    justify-content: space-between;
-    position: absolute;
-    box-sizing: border-box; 
-    bottom: 0px;
-    width: 100%;
-    padding: 10px 15px;
-}
-
-.buttons button {
-    border: none;
-    cursor: pointer;
-    transition: box-shadow 0.3s ease;
 }
 
 .featured-stories, .all-news {
@@ -377,10 +339,163 @@ body, html {
     width: 22%;
 }
 
-.featured-stories h2 {
-    font-size: 2.2em;
+
+/* Card Container */
+.card-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
 }
 
-.all-news h2 {
-    font-size: 1.7em;
+.card {
+    padding: 0;
+    aspect-ratio: 2.5 / 4;
+    overflow: hidden;
+    position: relative;
+}
+
+.card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1; /* Place it behind the title-info-container */
+}
+
+.card-bg {
+    position: absolute;
+    border-radius: 0;
+    padding: 0;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 25%;
+    transition: height 0.5s ease-in-out;
+    z-index: 1; /* Ensure it's above the image but behind the title-info-container */
+    overflow: hidden;
+}
+
+.card:hover .card-bg {
+    height: 100%;
+}
+
+.card .title-info-container {
+    border-radius: 0;
+    box-sizing: border-box;
+    position: relative;
+    width: 100%;
+    height: 25%; /* Fixed height to 25% */
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    z-index: 2; /* Ensure it is above card-bg */
+    box-shadow: none;
+    /* background-color: yellow; */
+    background-color: none;
+    padding: 10px 20px;
+}
+
+.card .info {
+    display: flex;
+    font-weight: 300;
+    justify-content: space-between;
+    color: var(--tag-color);
+}
+
+.card-bg .card-content {
+    position: absolute;
+    top: 25%; /* Start just below the title-info-container */
+    left: 0;
+    width: 100%;
+    padding: 10px 20px;
+    box-sizing: border-box;
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out;
+}
+
+.card:hover .card-bg .card-content {
+    top: 25%;
+    opacity: 1;
+}
+
+.card h2 {
+    font-size: 2.5em; /* Initial font size */
+    margin: 0;
+    overflow: hidden;
+    white-space: normal; /* Allow text to wrap */
+    line-height: 1.2; /* Set line height for readability */
+}
+
+
+
+.card .buttons {
+    display: flex;
+    justify-content: space-between;
+    position: absolute;
+    box-sizing: border-box; 
+    bottom: 0px;
+    width: 100%;
+    padding: 10px 20px;
+    z-index: 3;
+}
+
+.buttons button {
+    border: none;
+    cursor: pointer;
+}
+.card.expanded {
+    display: grid;
+    grid-template-rows: auto auto 1fr; /* Adjusting the grid rows to auto and 1fr */
+    grid-gap: 20px;
+    width: 50%;
+    height: 100%;
+    padding: 20px;
+    box-sizing: border-box;
+    position: fixed; /* Use fixed to cover the entire viewport */
+    top: 0;
+    left: 0;
+    right: 0;   
+    z-index: 3; /* Bring to front */
+    overflow: auto; /* Allow scrolling if content overflows */
+    background-color: inherit; /* Inherit background color */
+    border-radius: 20px;
+}
+
+.card.expanded .card-bg {
+    display: none; /* Hide the card-bg in expanded mode */
+}
+
+.card.expanded .card-content {
+    grid-row: 1; /* Title in the first row */
+}
+
+.card.expanded img.article-image {
+    grid-row: 2; /* Image in the second row */
+    width: 30%; /* Full width of the grid */
+    height: auto; /* Maintain aspect ratio */
+    object-fit: cover;
+    border-radius: 20px;
+}
+
+.card.expanded .article-text {
+    grid-row: 3; /* Text in the third row */
+    width: 100%;
+    overflow-y: auto; /* Scroll if content overflows */
+}
+
+.card.expanded .buttons {
+    display: none; /* Hide buttons */
+}
+
+.card.expanded .close-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: none;
+    border: none;
+    font-size: 1.5em; /* Larger close button */
+    cursor: pointer;
+    z-index: 10; /* Ensure it's above other elements */
 }
